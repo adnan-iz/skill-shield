@@ -43,23 +43,17 @@ export default function HomePage() {
   const handleUrlParse = useCallback(async (data: { owner: string; repo: string; path: string; url: string }) => {
     setLoading(true)
     try {
-      const branch = data.path ? data.path.split('/')[0] : 'main'
-      const apiPath = `https://api.github.com/repos/${data.owner}/${data.repo}/git/trees/${branch}?recursive=1`
-      const res = await fetch(apiPath)
-      if (!res.ok) throw new Error('Failed to fetch repository')
-      const tree = await res.json()
-      const files = tree.tree
-        .filter((item: any) => item.type === 'blob')
-        .map((item: any) => ({ path: item.path, content: '' }))
-
-      const contentFiles = await Promise.all(
-        files.map(async (f: any) => {
-          const raw = await fetch(`https://raw.githubusercontent.com/${data.owner}/${data.repo}/${branch}/${f.path}`)
-          return { path: f.path, content: await raw.text() }
-        })
-      )
-
-      await validate({ files: contentFiles, source: { type: 'github', url: data.url } })
+      const res = await fetch('/api/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: data.owner, repo: data.repo, path: data.path }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to fetch repository')
+      }
+      const result = await res.json()
+      await validate({ files: result.files, source: { type: 'github', url: data.url } })
     } catch (err) {
       alert('Failed to fetch from GitHub: ' + (err instanceof Error ? err.message : 'Unknown error'))
     } finally {
