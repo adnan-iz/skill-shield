@@ -8,39 +8,50 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'owner and repo are required' }, { status: 400 })
     }
 
-    const branch = path ? path.split('/')[0] : 'main'
+    const branch = await resolveBranch(owner, repo, path)
 
-    const treeRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
-      { headers: { 'User-Agent': 'skillshield/1.0' } }
-    )
-
-    if (treeRes.status === 404) {
-      const altBranch = branch === 'main' ? 'master' : 'main'
-      const altRes = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/git/trees/${altBranch}?recursive=1`,
-        { headers: { 'User-Agent': 'skillshield/1.0' } }
-      )
-      if (!altRes.ok) {
-        return Response.json({ error: `Branch not found. Tried '${branch}' and '${altBranch}'` }, { status: 404 })
-      }
-      const altData = await altRes.json()
-      return await fetchFiles(owner, repo, altBranch, altData)
-    }
+    const treePath = path ? path.split('/').slice(1).join('/') : ''
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}${treePath ? ':' + treePath : ''}?recursive=1`
+    const treeRes = await fetch(apiUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
 
     if (!treeRes.ok) {
-      return Response.json({ error: `GitHub API error: ${treeRes.status}` }, { status: treeRes.status })
+      const msg = treeRes.status === 404
+        ? `Path not found in branch '${branch}'`
+        : `GitHub API error: ${treeRes.status}`
+      return Response.json({ error: msg }, { status: treeRes.status })
     }
 
     const data = await treeRes.json()
-    return await fetchFiles(owner, repo, branch, data)
+    return await fetchFiles(owner, repo, branch, treePath || undefined, data)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch from GitHub'
     return Response.json({ error: message }, { status: 500 })
   }
 }
 
-async function fetchFiles(owner: string, repo: string, branch: string, treeData: any) {
+async function resolveBranch(owner: string, repo: string, path?: string): Promise<string> {
+  if (path) return path.split('/')[0]
+
+  const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    headers: { 'User-Agent': 'skillshield/1.0' },
+  })
+  if (repoRes.ok) {
+    const repoData = await repoRes.json()
+    return repoData.default_branch || 'main'
+  }
+
+  for (const candidate of ['main', 'master']) {
+    const headRes = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${candidate}`,
+      { headers: { 'User-Agent': 'skillshield/1.0' } }
+    )
+    if (headRes.ok) return candidate
+  }
+
+  return 'main'
+}
+
+async function fetchFiles(owner: string, repo: string, branch: string, treePath: string | undefined, treeData: any) {
   const blobs = (treeData.tree || []).filter((item: any) => item.type === 'blob')
 
   const textExtensions = new Set([
@@ -48,27 +59,29 @@ async function fetchFiles(owner: string, repo: string, branch: string, treeData:
     '.py', '.rb', '.go', '.rs', '.java', '.c', '.h', '.cpp', '.hpp',
     '.css', '.html', '.sh', '.bash', '.zsh', '.toml', '.ini', '.cfg',
     '.env', '.env.example', '.gitignore', '.dockerfile', '.sql',
+    '.xml', '.svg', '.proto', '.gradle', '.lock',
   ])
 
-  const files = await Promise.all(
-    blobs.map(async (blob: any) => {
-      const ext = '.' + blob.path.split('.').pop()?.toLowerCase()
-      if (!textExtensions.has(ext)) return null
+  const maxFiles = 200
+  const relevant = blobs.slice(0, maxFiles)
 
-      try {
-        const rawRes = await fetch(
-          `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${blob.path}`,
-          { headers: { 'User-Agent': 'skillshield/1.0' } }
-        )
-        if (!rawRes.ok) return null
-        return { path: blob.path, content: await rawRes.text() }
-      } catch {
-        return null
-      }
+  const results = await Promise.allSettled(
+    relevant.map(async (blob: any) => {
+      const ext = '.' + blob.path.split('.').pop()?.toLowerCase()
+      if (!textExtensions.has(ext) && !blob.path.endsWith('SKILL.md')) return null
+
+      const rawRes = await fetch(
+        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${blob.path}`,
+        { headers: { 'User-Agent': 'skillshield/1.0' } }
+      )
+      if (!rawRes.ok) return null
+      return { path: blob.path, content: await rawRes.text() }
     })
   )
 
-  const validFiles = files.filter(Boolean)
+  const files = results
+    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+    .map(r => r.value)
 
-  return Response.json({ files: validFiles, owner, repo, branch })
+  return Response.json({ files, owner, repo, branch, truncated: blobs.length > maxFiles })
 }
