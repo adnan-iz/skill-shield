@@ -1,0 +1,19 @@
+{
+  "name": "@skillshield/core",
+  "version": "0.1.0",
+  "description": "SkillShield core scanner and validator engine",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0",
+    "marked": "^18.0.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

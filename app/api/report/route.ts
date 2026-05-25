@@ -3,6 +3,7 @@ import { getResult } from '@/lib/store'
 import { validateId } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
 import { badRequest, tooManyRequests, notFound } from '@/lib/api-error'
+import { generateSarifReport } from '@/lib/report/sarif'
 import type { ValidationResult } from '@/lib/validator/types'
 
 function ipFromRequest(request: NextRequest): string {
@@ -56,7 +57,17 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  return badRequest('Unsupported format. Use json, html, or pdf')
+  if (format === 'sarif') {
+    const sarif = generateSarifReport(result)
+    return new Response(JSON.stringify(sarif, null, 2), {
+      headers: {
+        'Content-Type': 'application/sarif+json',
+        'Content-Disposition': `attachment; filename="skillshield-${id}.sarif"`,
+      },
+    })
+  }
+
+  return badRequest('Unsupported format. Use json, html, pdf, or sarif')
 }
 
 function generateHtmlReport(result: ValidationResult): string {

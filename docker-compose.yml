@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  skillshield-web:
+    build: .
+    container_name: skillshield-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://skillshield:skillshield_pass@postgres:5432/skillshield
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - skillshield-net
+
+  postgres:
+    image: postgres:16
+    container_name: skillshield-postgres
+    environment:
+      POSTGRES_USER: skillshield
+      POSTGRES_PASSWORD: skillshield_pass
+      POSTGRES_DB: skillshield
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillshield -d skillshield"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - skillshield-net
+
+volumes:
+  postgres_data:
+    name: skillshield_postgres_data
+
+networks:
+  skillshield-net:
+    name: skillshield-network
+    driver: bridge

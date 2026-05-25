@@ -1,0 +1,40 @@
+{
+  "score": 90,
+  "riskLevel": "critical",
+  "summary": {
+    "high": 3,
+    "medium": 1,
+    "low": 0,
+    "info": 0
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "category": "destructive_command",
+      "message": "Destructive command: rm -rf /tmp/* — deletion of system directory contents",
+      "line": 10,
+      "snippet": "rm -rf /tmp/*"
+    },
+    {
+      "severity": "high",
+      "category": "destructive_command",
+      "message": "Destructive command: find /var/log -type f -name \"*.log\" -exec rm -f",
+      "line": 14,
+      "snippet": "find /var/log -type f -name \"*.log\" -exec rm -f {} \\;"
+    },
+    {
+      "severity": "high",
+      "category": "permission_change",
+      "message": "Permission modification: chmod +x on /usr/local/bin/*.sh",
+      "line": 20,
+      "snippet": "chmod +x /usr/local/bin/*.sh"
+    },
+    {
+      "severity": "medium",
+      "category": "privilege_escalation",
+      "message": "Privilege escalation via sudo commands without declared capability",
+      "line": 23,
+      "snippet": "sudo apt-get autoremove -y"
+    }
+  ]
+}

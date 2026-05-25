@@ -28,15 +28,15 @@ async function run() {
   }
 
   console.log(`::notice::Validated ${files.length} files in ${skillPath}`);
-  console.log(`::set-output name=finding-count::${files.length}`);
+  fs.appendFileSync(process.env.GITHUB_OUTPUT, `finding-count=${files.length}\n`);
 
   const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
   const failThreshold = severityOrder[failOn] ?? 1;
 
   const result = await validateSkill(files, skillDir);
 
-  console.log(`::set-output name=score::${result.score}`);
-  console.log(`::set-output name=risk-level::${result.riskLevel}`);
+  fs.appendFileSync(process.env.GITHUB_OUTPUT, `score=${result.score}\n`);
+  fs.appendFileSync(process.env.GITHUB_OUTPUT, `risk-level=${result.riskLevel}\n`);
 
   for (const finding of result.findings) {
     const sev = severityOrder[finding.severity] ?? 4;
