@@ -1,6 +1,6 @@
 import { readFile } from 'fs/promises'
 import { parse as parseYaml } from 'yaml'
-import type { PolicyConfig, PolicyMode } from './types'
+import type { PolicyConfig, PolicyMode, SeverityOverride } from './types'
 
 const ALLOWED_MODES: PolicyMode[] = ['default', 'strict', 'enterprise', 'custom']
 const ALLOWED_FAILON: PolicyConfig['failOn'][] = ['critical', 'high', 'medium', 'low', 'info']
@@ -15,6 +15,9 @@ const DEFAULT_POLICY: PolicyConfig = {
   blockedCommands: [],
   maxFileSizeMB: 10,
   maxFiles: 100,
+  severityOverrides: [],
+  allowedFileExtensions: [],
+  blockedFindings: [],
 }
 
 const STRICT_POLICY: Partial<PolicyConfig> = {
@@ -54,6 +57,8 @@ function getModeDefaults(mode: PolicyMode): Partial<PolicyConfig> {
   }
 }
 
+const ALLOWED_SEVERITIES: SeverityOverride['overrideSeverity'][] = ['critical', 'high', 'medium', 'low', 'info']
+
 function validateConfig(config: Partial<PolicyConfig>): string[] {
   const errors: string[] = []
 
@@ -71,6 +76,30 @@ function validateConfig(config: Partial<PolicyConfig>): string[] {
 
   if (config.maxFiles != null && config.maxFiles < 0) {
     errors.push('maxFiles must be non-negative')
+  }
+
+  if (config.severityOverrides) {
+    if (!Array.isArray(config.severityOverrides)) {
+      errors.push('severityOverrides must be an array')
+    } else {
+      for (let i = 0; i < config.severityOverrides.length; i++) {
+        const o = config.severityOverrides[i]
+        if (!o.ruleId && !o.category) {
+          errors.push(`severityOverrides[${i}]: must specify ruleId or category`)
+        }
+        if (o.overrideSeverity && !ALLOWED_SEVERITIES.includes(o.overrideSeverity)) {
+          errors.push(`severityOverrides[${i}]: invalid overrideSeverity "${o.overrideSeverity}"`)
+        }
+      }
+    }
+  }
+
+  if (config.allowedFileExtensions != null && !Array.isArray(config.allowedFileExtensions)) {
+    errors.push('allowedFileExtensions must be an array')
+  }
+
+  if (config.blockedFindings != null && !Array.isArray(config.blockedFindings)) {
+    errors.push('blockedFindings must be an array')
   }
 
   return errors

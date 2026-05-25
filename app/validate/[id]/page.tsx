@@ -7,6 +7,8 @@ import ScoreGauge from '@/components/report/score-gauge'
 import FindingsTable from '@/components/report/findings-table'
 import CompatibilityGrid from '@/components/report/compatibility-grid'
 import ExportBar from '@/components/report/export-bar'
+import DashboardCards from '@/components/report/dashboard-cards'
+import FileTree from '@/components/report/file-tree'
 import type { ValidationResult } from '@/lib/validator/types'
 
 export default function ReportPage({
@@ -24,6 +26,15 @@ export default function ReportPage({
     }
     window.addEventListener('storage', handleStorage)
     return () => window.removeEventListener('storage', handleStorage)
+  }, [id])
+
+  const [approval, setApproval] = useState<{ id: string; scanId: string; status: string; reviewedBy: string | null; reviewNotes: string | null; createdAt: number; reviewedAt: number | null } | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/approvals?scanId=${id}`)
+      .then(r => r.json())
+      .then(data => setApproval(data.length > 0 ? data[0] : null))
+      .catch(() => {})
   }, [id])
 
   const loading = result === undefined
@@ -90,11 +101,38 @@ export default function ReportPage({
         </span>
       </div>
 
+      {approval && (
+        <div className="mb-6 glass-card rounded-xl px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">verified</span>
+            <span className="text-sm font-medium">Approval Status:</span>
+            <span className={`rounded-full px-3 py-0.5 text-xs font-semibold uppercase ${
+              approval.status === 'approved' ? 'bg-shield-100 text-shield-800' :
+              approval.status === 'rejected' ? 'bg-red-100 text-red-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>
+              {approval.status}
+            </span>
+          </div>
+          {approval.status === 'pending' && (
+            <div className="flex gap-2">
+              <button className="rounded-lg bg-shield-600 px-4 py-1.5 text-xs font-semibold text-white">Approve</button>
+              <button className="rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white">Reject</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mb-8">
+        <DashboardCards result={result} />
+      </div>
+
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 flex flex-col gap-6">
           <div className="glass-card rounded-xl p-6">
             <ScoreGauge score={result.overallScore} riskLevel={result.riskLevel} />
           </div>
+          <FileTree result={result} />
         </div>
 
         <div className="lg:col-span-2">
@@ -149,6 +187,20 @@ export default function ReportPage({
               <span className="material-symbols-outlined text-lg">list_alt</span>
               Security Findings ({result.findings.length})
             </h3>
+            {result.findings.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-medium text-on-surface-secondary">
+                {Object.entries(
+                  result.findings.reduce<Record<string, number>>((acc, f) => {
+                    acc[f.category] = (acc[f.category] || 0) + 1
+                    return acc
+                  }, {})
+                ).map(([cat, count]) => (
+                  <span key={cat} className="rounded-full bg-surface-secondary px-2 py-0.5">
+                    {cat}: {count}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <FindingsTable findings={result.findings} />
         </div>

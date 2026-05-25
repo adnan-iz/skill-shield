@@ -1,6 +1,8 @@
 export const VALID_OWNER_REPO = /^[a-zA-Z0-9_.-]+$/
 export const VALID_ID = /^[a-zA-Z0-9-]+$/
 export const VALID_SLUG = /^[a-zA-Z0-9_.\-/]+$/
+export const VALID_BRANCH = /^[a-zA-Z0-9._\-\/]+$/
+export const VALID_COMMIT_SHA = /^[0-9a-f]{7,40}$/
 
 export const MAX_FILE_SIZE = 3 * 1024 * 1024 // 3MB per file
 export const MAX_TOTAL_SIZE = 15 * 1024 * 1024 // 15MB total
@@ -50,6 +52,20 @@ export function validateFiles(
 export function isBinaryContent(content: string): boolean {
   const sample = content.slice(0, 4096)
   return sample.includes('\x00')
+}
+
+export function validateBranch(branch: string): string | null {
+  if (!branch) return null
+  if (branch.length > 250) return 'Branch name too long'
+  if (!VALID_BRANCH.test(branch)) return 'Invalid branch name'
+  if (branch.includes('..') || branch.startsWith('/') || branch.endsWith('/')) return 'Invalid branch name'
+  return null
+}
+
+export function validateCommitSha(sha: string): string | null {
+  if (!sha) return null
+  if (!VALID_COMMIT_SHA.test(sha)) return 'Invalid commit SHA (expected 7-40 hex characters)'
+  return null
 }
 
 export function sanitizeError(message: string): string {

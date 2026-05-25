@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { validateOwnerRepo } from '@/lib/security/input-validation'
+import { validateOwnerRepo, validateBranch, validateCommitSha } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
 import { badRequest, tooManyRequests, notFound, serverError } from '@/lib/api-error'
 
@@ -15,6 +15,15 @@ interface GitHubTreeNode {
 const GITHUB_API_HOST = 'api.github.com'
 const RAW_GITHUB_HOST = 'raw.githubusercontent.com'
 const FETCH_TIMEOUT = 15_000
+const DEFAULT_IGNORE_PATHS = ['.git', 'node_modules', '.next', 'dist', 'build', 'vendor', 'coverage', '.cache', 'venv', '__pycache__']
+
+function shouldIgnore(path: string, ignorePatterns: string[]): boolean {
+  return ignorePatterns.some(pattern => {
+    if (pattern.startsWith('*')) return path.endsWith(pattern.slice(1))
+    if (pattern.endsWith('/')) return path.startsWith(pattern) || path.includes('/' + pattern)
+    return path === pattern || path.startsWith(pattern + '/')
+  })
+}
 
 function ipFromRequest(request: NextRequest): string {
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
@@ -40,16 +49,34 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { owner, repo, path } = await request.json()
+    const { owner, repo, path, branch, sha, includeExtensions, excludeExtensions, ignorePaths } = await request.json()
 
     const validationError = validateOwnerRepo(owner, repo)
     if (validationError) {
       return badRequest(validationError)
     }
 
-    const { branch, treePath } = await resolvePath(owner, repo, path || '')
+    let resolvedBranch: string
+    let treePath: string
 
-    const apiUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/trees/${branch}${treePath ? ':' + treePath : ''}?recursive=1`
+    if (branch) {
+      const branchError = validateBranch(branch)
+      if (branchError) return badRequest(branchError)
+      resolvedBranch = branch
+      treePath = path || ''
+    } else {
+      const resolved = await resolvePath(owner, repo, path || '')
+      resolvedBranch = resolved.branch
+      treePath = resolved.treePath
+    }
+
+    if (sha) {
+      const shaError = validateCommitSha(sha)
+      if (shaError) return badRequest(shaError)
+    }
+
+    const treeRef = sha || resolvedBranch
+    const apiUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/trees/${treeRef}${treePath ? ':' + treePath : ''}?recursive=1`
     const treeRes = await fetchWithTimeout(apiUrl)
 
     if (!treeRes.ok) {
@@ -57,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await treeRes.json()
-    return await fetchFiles(owner, repo, branch, treePath, data)
+    return await fetchFiles(owner, repo, resolvedBranch, treePath, data, { sha, includeExtensions, excludeExtensions, ignorePaths })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return serverError('Request timed out')
@@ -145,8 +172,20 @@ async function getDefaultBranch(owner: string, repo: string): Promise<string> {
   return 'main'
 }
 
-async function fetchFiles(owner: string, repo: string, branch: string, treePath: string, treeData: { tree: GitHubTreeNode[] }) {
-  const blobs = (treeData.tree || []).filter((item: GitHubTreeNode) => item.type === 'blob')
+async function fetchFiles(
+  owner: string,
+  repo: string,
+  branch: string,
+  treePath: string,
+  treeData: { tree: GitHubTreeNode[] },
+  options?: {
+    sha?: string
+    includeExtensions?: string[]
+    excludeExtensions?: string[]
+    ignorePaths?: string[]
+  }
+) {
+  const { sha, includeExtensions, excludeExtensions, ignorePaths = DEFAULT_IGNORE_PATHS } = options || {}
 
   const textExtensions = new Set([
     '.md', '.json', '.yaml', '.yml', '.txt', '.ts', '.tsx', '.js', '.jsx',
@@ -156,17 +195,32 @@ async function fetchFiles(owner: string, repo: string, branch: string, treePath:
     '.xml', '.svg', '.proto', '.gradle', '.lock',
   ])
 
+  let extensions = textExtensions
+  if (includeExtensions && includeExtensions.length > 0) {
+    extensions = new Set(includeExtensions.map(e => e.startsWith('.') ? e.toLowerCase() : '.' + e.toLowerCase()))
+  }
+  if (excludeExtensions && excludeExtensions.length > 0) {
+    const excluded = new Set(excludeExtensions.map(e => e.startsWith('.') ? e.toLowerCase() : '.' + e.toLowerCase()))
+    extensions = new Set([...extensions].filter(e => !excluded.has(e)))
+  }
+
+  const blobs = (treeData.tree || []).filter((item: GitHubTreeNode) => item.type === 'blob')
+  const filtered = blobs.filter(item => !shouldIgnore(item.path, ignorePaths))
+
   const maxFiles = 200
-  const relevant = blobs.slice(0, maxFiles)
+  const MAX_TOTAL_SIZE = 10 * 1024 * 1024
+  const ref = sha || branch
+
+  const relevant = filtered.slice(0, maxFiles)
 
   const results = await Promise.allSettled(
     relevant.map(async (blob: GitHubTreeNode) => {
       const ext = '.' + blob.path.split('.').pop()?.toLowerCase()
-      if (!textExtensions.has(ext) && !blob.path.endsWith('SKILL.md')) return null
+      if (!extensions.has(ext) && !blob.path.endsWith('SKILL.md')) return null
 
       const fullPath = treePath ? `${treePath}/${blob.path}` : blob.path
       const rawRes = await fetchWithTimeout(
-        `https://${RAW_GITHUB_HOST}/${owner}/${repo}/${branch}/${fullPath}`,
+        `https://${RAW_GITHUB_HOST}/${owner}/${repo}/${ref}/${fullPath}`,
         { headers: { 'User-Agent': 'skillshield/1.0' } }
       )
       if (!rawRes.ok) return null
@@ -176,9 +230,26 @@ async function fetchFiles(owner: string, repo: string, branch: string, treePath:
     })
   )
 
+  let totalSize = 0
+  let sizeTruncated = false
+
   const files = results
     .filter((r): r is PromiseFulfilledResult<{ path: string; content: string }> => r.status === 'fulfilled' && r.value !== null)
     .map(r => r.value)
+    .filter(file => {
+      if (totalSize + file.content.length > MAX_TOTAL_SIZE) {
+        sizeTruncated = true
+        return false
+      }
+      totalSize += file.content.length
+      return true
+    })
 
-  return Response.json({ files, owner, repo, branch, truncated: blobs.length > maxFiles })
+  const truncated = blobs.length > maxFiles || sizeTruncated
+  const response: Record<string, unknown> = { files, owner, repo, branch, truncated }
+  if (sizeTruncated) {
+    response.warning = 'Response truncated: total content exceeded 10MB limit'
+  }
+
+  return Response.json(response)
 }

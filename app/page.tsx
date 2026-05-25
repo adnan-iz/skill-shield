@@ -141,6 +141,18 @@ export default function HomePage() {
               </div>
             )}
 
+            <div className="mt-4 flex items-center gap-3 border-t border-outline pt-4">
+              <label className="text-xs font-medium text-on-surface-secondary">Policy Mode</label>
+              <select
+                className="rounded-lg border border-outline bg-surface-container px-3 py-1.5 text-sm text-on-surface focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500 transition-colors"
+              >
+                <option value="default">Default</option>
+                <option value="strict">Strict</option>
+                <option value="enterprise">Enterprise</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
             {loading && (
               <div className="mt-4 flex items-center justify-center gap-2 text-sm text-on-surface-secondary">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-shield-200 border-t-shield-600" />

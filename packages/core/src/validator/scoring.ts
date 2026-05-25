@@ -1,11 +1,5 @@
 import type { Finding } from '../scanner/types'
 
-let findingCounter = 0
-
-function makeId(): string {
-  return `score-${Date.now()}-${++findingCounter}`
-}
-
 export function calculateScore(findings: Finding[]): number {
   let score = 100
 
@@ -55,7 +49,7 @@ export function determineRiskLevel(
 
 export function determineTrustDecision(
   score: number,
-  findings: Finding[]
+  _findings: Finding[]
 ): 'trusted' | 'review_required' | 'sandbox_only' | 'blocked' {
   if (score >= 80) return 'trusted'
   if (score >= 60) return 'review_required'

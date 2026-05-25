@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { validationResults } from '@/lib/db/schema'
-import { eq, count } from 'drizzle-orm'
+import { eq, count, lt, isNull, or, and, inArray } from 'drizzle-orm'
 import type { ValidationResult } from '@/lib/validator/types'
 
 export async function saveResult(result: ValidationResult): Promise<void> {
@@ -8,6 +8,7 @@ export async function saveResult(result: ValidationResult): Promise<void> {
     id: result.id,
     result: JSON.stringify(result),
     createdAt: Date.now(),
+    expiresAt: Date.now() + getRetentionDays() * 24 * 60 * 60 * 1000,
   })
 }
 
@@ -21,4 +22,30 @@ export async function getResult(id: string): Promise<ValidationResult | undefine
 export async function getResultCount(): Promise<number> {
   const rows = await db.select({ count: count() }).from(validationResults)
   return rows[0].count
+}
+
+export function getRetentionDays(): number {
+  return 30
+}
+
+export async function cleanExpiredResults(): Promise<number> {
+  const now = Date.now()
+  const cutoff = now - getRetentionDays() * 24 * 60 * 60 * 1000
+
+  const expired = await db.select({ id: validationResults.id })
+    .from(validationResults)
+    .where(
+      or(
+        and(isNull(validationResults.expiresAt), lt(validationResults.createdAt, cutoff)),
+        lt(validationResults.expiresAt, now)
+      )
+    )
+
+  if (expired.length === 0) return 0
+
+  await db.delete(validationResults).where(
+    inArray(validationResults.id, expired.map((e) => e.id))
+  )
+
+  return expired.length
 }

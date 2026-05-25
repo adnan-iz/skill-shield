@@ -1436,7 +1436,7 @@ const patterns: PatternDef[] = [
     name: "ping to external host",
     description: "Using ping to probe external network hosts",
     detect: (content: string, filePath: string) => {
-      const re = /\bping\s+(?:-[a-zA-Z]*\s+)*(?!(?:127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\]))(?:\d{1,3}\.){3}\d{1,3}|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+      const re = /\bping\s+(?:-[a-zA-Z]*\s+)*(?!(?:127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\]))(?:\d{1,3}\.){3}\d{1,3}|(?<![\w.)])(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+(?:com|org|net|edu|gov|io|ai|app|dev|co|uk|jp|de|fr|au|ca|cn|in|ru|br|info|biz|me|tv|cc|xyz|click|link|top|online|site|tech|store|blog|pro|name|mobi|asia|tel|xxx)\b/
       const loc = locate(content, re)
       if (!loc) return null
       return makeFinding("medium", "external-calls", "ping to external host",

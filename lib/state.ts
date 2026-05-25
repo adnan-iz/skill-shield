@@ -41,6 +41,19 @@ export function getAllValidations(): ValidationResult[] {
   }
 }
 
+export function deleteValidation(id: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return
+    const list: ValidationResult[] = JSON.parse(stored)
+    const filtered = list.filter((r) => r.id !== id)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+  } catch {
+    // localStorage may be full or unavailable
+  }
+}
+
 export function clearHistory(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(STORAGE_KEY)

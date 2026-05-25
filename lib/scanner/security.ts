@@ -2,6 +2,9 @@ import { AxisResult, Finding, SkillFile } from '@/lib/validator/types'
 import { ALL_PATTERNS } from '@/lib/scanner/patterns'
 import { scanForSecrets } from '@/lib/scanner/secrets'
 import { scanObfuscation } from '@/lib/scanner/obfuscation'
+import { extractPermissionManifest, detectPermissionViolations } from '@/lib/permissions'
+
+let findingCounter = 0
 
 export function runSecurityScan(files: SkillFile[], _content: string): AxisResult {
   const findings: Finding[] = []
@@ -19,6 +22,24 @@ export function runSecurityScan(files: SkillFile[], _content: string): AxisResul
 
     const obfuscationFindings = scanObfuscation(file.content, file.path)
     findings.push(...obfuscationFindings)
+  }
+
+  const manifest = extractPermissionManifest(_content)
+  if (manifest) {
+    const violations = detectPermissionViolations(_content, '', manifest)
+    for (const v of violations) {
+      findings.push({
+        id: `finding-perm-${++findingCounter}`,
+        axis: 'security',
+        severity: v.severity,
+        category: 'permission-violation',
+        title: `Permission violation: ${v.type}`,
+        message: v.message,
+        filePath: '',
+        snippet: `declared: ${v.declared}, detected: ${v.detected}`,
+        recommendation: `Add "${v.detected}" to the ${v.type} permissions in the permission manifest.`,
+      })
+    }
   }
 
   const criticalCount = findings.filter(f => f.severity === 'critical').length

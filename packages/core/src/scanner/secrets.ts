@@ -1,30 +1,7 @@
 import type { Finding } from './types'
+import type { SecretType } from './types'
 
 let secretFindingCounter = 0
-
-export type SecretType =
-  | 'api-key'
-  | 'aws-access-key'
-  | 'aws-secret-key'
-  | 'github-token'
-  | 'jwt-token'
-  | 'private-key'
-  | 'database-url'
-  | 'slack-token'
-  | 'discord-token'
-  | 'stripe-key'
-  | 'openai-key'
-  | 'anthropic-key'
-  | 'generic-secret'
-  | 'password'
-
-export interface SecretFinding {
-  type: SecretType
-  value: string
-  lineNumber: number
-  column: number
-  context: string
-}
 
 interface SecretRule {
   type: SecretType

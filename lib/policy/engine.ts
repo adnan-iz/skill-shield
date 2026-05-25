@@ -1,11 +1,11 @@
-import type { ValidationResult, Finding } from '@/lib/validator/types'
-import type { PolicyConfig } from './types'
+import type { ValidationResult, Finding, Severity } from '@/lib/validator/types'
+import type { PolicyConfig, SeverityOverride } from './types'
 
 export interface PolicyViolation {
-  findingId: string
-  rule: string
+  type: 'blocked_finding' | 'severity_override' | 'manifest_required' | 'blocked_extension' | 'secrets_blocked' | 'destructive_command_blocked'
+  ruleId?: string
   message: string
-  severity: string
+  severity: Severity
 }
 
 export interface PolicyEvaluation {
@@ -13,7 +13,8 @@ export interface PolicyEvaluation {
   violations: PolicyViolation[]
   originalScore: number
   adjustedScore: number
-  failReason?: string
+  failReason: string | null
+  overridesApplied: number
 }
 
 const DESTRUCTIVE_PATTERNS = [
@@ -30,6 +31,8 @@ const DESTRUCTIVE_PATTERNS = [
   /del\s+\/f/i,
   /rd\s+\/s/i,
 ]
+
+const SEVERITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
 
 function isDestructiveCommand(cmd: string): boolean {
   return DESTRUCTIVE_PATTERNS.some((p) => p.test(cmd))
@@ -77,14 +80,44 @@ function extractDomainsFromFinding(finding: Finding): string[] {
   return [...new Set(domains)]
 }
 
+function applySeverityOverrides(findings: Finding[], overrides: SeverityOverride[]): Finding[] {
+  if (!overrides || overrides.length === 0) return findings
+
+  return findings.map((finding) => {
+    for (const override of overrides) {
+      const matchRule = override.ruleId && finding.ruleId === override.ruleId
+      const matchCategory = override.category && finding.category === override.category
+      if (matchRule || matchCategory) {
+        return { ...finding, severity: override.overrideSeverity }
+      }
+    }
+    return finding
+  })
+}
+
+function getFileExtension(filePath: string | undefined): string | null {
+  if (!filePath) return null
+  const idx = filePath.lastIndexOf('.')
+  if (idx === -1) return null
+  return filePath.slice(idx).toLowerCase()
+}
+
 export function evaluatePolicy(result: ValidationResult, policy: PolicyConfig): PolicyEvaluation {
   const violations: PolicyViolation[] = []
+  let overridesApplied = 0
 
-  for (const finding of result.findings) {
+  const effectiveFindings = applySeverityOverrides(result.findings, policy.severityOverrides || [])
+  overridesApplied = effectiveFindings.filter(
+    (f, i) => f.severity !== result.findings[i].severity
+  ).length
+
+  for (const finding of effectiveFindings) {
+    const _originalFinding = result.findings.find((f) => f.id === finding.id)
+
     if (policy.blockSecrets && isSecretFinding(finding)) {
       violations.push({
-        findingId: finding.id,
-        rule: 'block-secrets',
+        type: 'secrets_blocked',
+        ruleId: finding.ruleId,
         message: `Secret/credential detected: ${finding.title}`,
         severity: finding.severity,
       })
@@ -93,16 +126,16 @@ export function evaluatePolicy(result: ValidationResult, policy: PolicyConfig): 
     if (policy.blockDestructiveCommands) {
       if (finding.snippet && isDestructiveCommand(finding.snippet)) {
         violations.push({
-          findingId: finding.id,
-          rule: 'block-destructive-commands',
+          type: 'destructive_command_blocked',
+          ruleId: finding.ruleId,
           message: `Destructive command detected: ${finding.title}`,
           severity: finding.severity,
         })
       }
       if (isDestructiveCommand(finding.title)) {
         violations.push({
-          findingId: finding.id,
-          rule: 'block-destructive-commands',
+          type: 'destructive_command_blocked',
+          ruleId: finding.ruleId,
           message: `Destructive command detected: ${finding.title}`,
           severity: finding.severity,
         })
@@ -112,8 +145,8 @@ export function evaluatePolicy(result: ValidationResult, policy: PolicyConfig): 
     if (policy.blockedCommands.length > 0) {
       if (finding.snippet && matchesBlockedCommand(finding.snippet, policy.blockedCommands)) {
         violations.push({
-          findingId: finding.id,
-          rule: 'blocked-command',
+          type: 'destructive_command_blocked',
+          ruleId: finding.ruleId,
           message: `Blocked command found: ${finding.title}`,
           severity: finding.severity,
         })
@@ -128,37 +161,60 @@ export function evaluatePolicy(result: ValidationResult, policy: PolicyConfig): 
         )
         if (!isAllowed) {
           violations.push({
-            findingId: finding.id,
-            rule: 'external-domain',
+            type: 'blocked_finding',
+            ruleId: finding.ruleId,
             message: `External domain not in allowlist: ${domain}`,
             severity: finding.severity,
           })
         }
       }
     }
+
+    if (policy.blockedFindings && policy.blockedFindings.length > 0) {
+      const blocked = policy.blockedFindings.some(
+        (b) =>
+          finding.title.toLowerCase().includes(b.toLowerCase()) ||
+          (finding.ruleId && finding.ruleId.toLowerCase() === b.toLowerCase())
+      )
+      if (blocked) {
+        violations.push({
+          type: 'blocked_finding',
+          ruleId: finding.ruleId,
+          message: `Blocked finding matched: ${finding.title}`,
+          severity: finding.severity,
+        })
+      }
+    }
+
+    if (policy.allowedFileExtensions && policy.allowedFileExtensions.length > 0) {
+      const ext = getFileExtension(finding.filePath)
+      if (ext && !policy.allowedFileExtensions.includes(ext)) {
+        violations.push({
+          type: 'blocked_extension',
+          ruleId: finding.ruleId,
+          message: `File extension not allowed: ${ext} (${finding.filePath})`,
+          severity: finding.severity,
+        })
+      }
+    }
   }
 
   if (policy.requirePermissionManifest) {
-    const hasManifest = result.findings.some(
-      (f) =>
-        f.category === 'permissions' ||
-        f.axis === 'permissions' ||
-        f.filePath?.toLowerCase().includes('permissions')
+    const hasPermissionViolations = result.findings.some(
+      (f) => f.category === 'permission-violation'
     )
-    if (!hasManifest) {
+    if (hasPermissionViolations) {
       violations.push({
-        findingId: 'permission-manifest',
-        rule: 'require-permission-manifest',
-        message: 'No permission manifest found in the skill',
+        type: 'manifest_required',
+        message: 'Permission manifest violations detected; a valid manifest is required',
         severity: 'high',
       })
     }
   }
 
-  const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
-  const failThreshold = severityOrder[policy.failOn] ?? 1
+  const failThreshold = SEVERITY_ORDER[policy.failOn] ?? 1
   const hasFailingViolation = violations.some(
-    (v) => severityOrder[v.severity] <= failThreshold
+    (v) => SEVERITY_ORDER[v.severity] <= failThreshold
   )
 
   const violationPenalty = violations.length * 5
@@ -169,10 +225,10 @@ export function evaluatePolicy(result: ValidationResult, policy: PolicyConfig): 
     violations,
     originalScore: result.overallScore,
     adjustedScore,
-  }
-
-  if (!evaluation.passed) {
-    evaluation.failReason = `Policy violations found at '${policy.failOn}' severity or higher`
+    failReason: hasFailingViolation
+      ? `Policy violations found at '${policy.failOn}' severity or higher`
+      : null,
+    overridesApplied,
   }
 
   return evaluation

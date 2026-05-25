@@ -158,7 +158,7 @@ export default function ComparePage() {
         </div>
       </div>
 
-      {(leftResult || rightResult) && (
+          {(leftResult || rightResult) && (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="glass-card p-4 text-center">
@@ -174,6 +174,86 @@ export default function ComparePage() {
               <div className="text-lg font-bold text-on-surface">{computeDiff('risk', leftResult, rightResult)}</div>
             </div>
           </div>
+
+          {leftResult && rightResult && (
+            <div className="glass-card rounded-xl p-4 mt-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-on-surface-secondary mb-3">Axis-by-Axis Comparison</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-outline text-left text-xs font-semibold uppercase text-on-surface-secondary">
+                      <th className="px-3 py-2">Axis</th>
+                      <th className="px-3 py-2">Left Score</th>
+                      <th className="px-3 py-2">Right Score</th>
+                      <th className="px-3 py-2">Difference</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leftResult.axes.map((leftAxis) => {
+                      const rightAxis = rightResult.axes.find(a => a.key === leftAxis.key)
+                      if (!rightAxis) return null
+                      const diff = leftAxis.score - rightAxis.score
+                      return (
+                        <tr key={leftAxis.key} className="border-b border-outline">
+                          <td className="px-3 py-2 font-medium">{leftAxis.name}</td>
+                          <td className="px-3 py-2" style={{ color: leftAxis.score >= 70 ? '#16a34a' : leftAxis.score >= 50 ? '#ca8a04' : leftAxis.score >= 30 ? '#ea580c' : '#dc2626' }}>
+                            {leftAxis.score}
+                          </td>
+                          <td className="px-3 py-2" style={{ color: rightAxis.score >= 70 ? '#16a34a' : rightAxis.score >= 50 ? '#ca8a04' : rightAxis.score >= 30 ? '#ea580c' : '#dc2626' }}>
+                            {rightAxis.score}
+                          </td>
+                          <td className={`px-3 py-2 font-semibold ${diff > 0 ? 'text-shield-500' : diff < 0 ? 'text-red-500' : 'text-on-surface-secondary'}`}>
+                            {diff > 0 ? `+${diff}` : diff}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {leftResult && rightResult && (
+            <div className="glass-card rounded-xl p-4 mt-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-on-surface-secondary mb-3">Findings Overlap</h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="rounded-lg border border-outline p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-red-400 mb-2">Unique to Left ({leftResult.findings.filter(lf => !rightResult.findings.some(rf => rf.title === lf.title)).length})</p>
+                  <ul className="space-y-1">
+                    {leftResult.findings.filter(lf => !rightResult.findings.some(rf => rf.title === lf.title)).map(f => (
+                      <li key={f.id} className="text-xs text-on-surface-secondary">{f.title}</li>
+                    ))}
+                    {leftResult.findings.filter(lf => !rightResult.findings.some(rf => rf.title === lf.title)).length === 0 && (
+                      <li className="text-xs text-on-surface-secondary/50 italic">None</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="rounded-lg border border-outline p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-shield-400 mb-2">Unique to Right ({rightResult.findings.filter(rf => !leftResult.findings.some(lf => lf.title === rf.title)).length})</p>
+                  <ul className="space-y-1">
+                    {rightResult.findings.filter(rf => !leftResult.findings.some(lf => lf.title === rf.title)).map(f => (
+                      <li key={f.id} className="text-xs text-on-surface-secondary">{f.title}</li>
+                    ))}
+                    {rightResult.findings.filter(rf => !leftResult.findings.some(lf => lf.title === rf.title)).length === 0 && (
+                      <li className="text-xs text-on-surface-secondary/50 italic">None</li>
+                    )}
+                  </ul>
+                </div>
+                <div className="rounded-lg border border-outline p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-green-400 mb-2">In Both ({leftResult.findings.filter(lf => rightResult.findings.some(rf => rf.title === lf.title)).length})</p>
+                  <ul className="space-y-1">
+                    {leftResult.findings.filter(lf => rightResult.findings.some(rf => rf.title === lf.title)).map(f => (
+                      <li key={f.id} className="text-xs text-on-surface-secondary">{f.title}</li>
+                    ))}
+                    {leftResult.findings.filter(lf => rightResult.findings.some(rf => rf.title === lf.title)).length === 0 && (
+                      <li className="text-xs text-on-surface-secondary/50 italic">None</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div>

@@ -3,12 +3,15 @@
 import { useState } from 'react'
 
 interface UrlInputProps {
-  onParse: (data: { owner: string; repo: string; path: string; url: string }) => void
+  onParse: (data: { owner: string; repo: string; path: string; url: string; branch?: string; sha?: string }) => void
 }
 
 export default function UrlInput({ onParse }: UrlInputProps) {
   const [url, setUrl] = useState('')
   const [error, setError] = useState('')
+  const [parsed, setParsed] = useState(false)
+  const [branch, setBranch] = useState('')
+  const [sha, setSha] = useState('')
 
   function parseUrl(input: string) {
     setError('')
@@ -16,10 +19,10 @@ export default function UrlInput({ onParse }: UrlInputProps) {
 
     const githubPatterns = [
       /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/(.+)$/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)$/,
       /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)$/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)$/,
       /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)$/,
-      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/tree\/(.+)$/,
-      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/,
     ]
 
     const skillsShPattern = /^https?:\/\/(?:www\.)?skills\.sh\/([^\/]+)\/([^\/]+)\/([^\/]+)$/
@@ -29,7 +32,8 @@ export default function UrlInput({ onParse }: UrlInputProps) {
       const owner = skillsMatch[1]
       const repo = skillsMatch[2]
       const skill = skillsMatch[3]
-      onParse({ owner, repo, path: skill, url: trimmed })
+      setParsed(true)
+      onParse({ owner, repo, path: skill, url: trimmed, branch: branch || undefined, sha: sha || undefined })
       return
     }
 
@@ -38,13 +42,19 @@ export default function UrlInput({ onParse }: UrlInputProps) {
       if (match) {
         const owner = match[1]
         const repo = match[2]
-        const path = match.slice(3).join('/') || ''
-        onParse({ owner, repo, path, url: trimmed })
+        const extractedBranch = match[3] || undefined
+        const path = match.slice(4).join('/') || ''
+
+        setParsed(true)
+        if (!branch && extractedBranch) setBranch(extractedBranch)
+
+        onParse({ owner, repo, path, url: trimmed, branch: branch || extractedBranch, sha: sha || undefined })
         return
       }
     }
 
     setError('Invalid URL. Expected: GitHub URL or skills.sh URL (e.g. https://skills.sh/owner/repo/skill)')
+    setParsed(false)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -76,6 +86,26 @@ export default function UrlInput({ onParse }: UrlInputProps) {
           Parse
         </button>
       </div>
+      {parsed && (
+        <div className="mt-3 flex gap-2">
+          <input
+            type="text"
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            placeholder="Branch (optional)"
+            aria-label="Branch name"
+            className="flex-1 rounded-lg border border-outline bg-surface-container px-3 py-1.5 text-xs text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+          />
+          <input
+            type="text"
+            value={sha}
+            onChange={(e) => setSha(e.target.value)}
+            placeholder="Commit SHA (optional)"
+            aria-label="Commit SHA"
+            className="flex-1 rounded-lg border border-outline bg-surface-container px-3 py-1.5 text-xs text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+          />
+        </div>
+      )}
       {error && (
         <p role="alert" className="mt-1.5 text-xs text-error">{error}</p>
       )}

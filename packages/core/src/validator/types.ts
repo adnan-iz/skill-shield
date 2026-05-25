@@ -1,4 +1,4 @@
-import type { Finding, Severity } from '../scanner/types'
+import type { Finding } from '../scanner/types'
 
 export interface SkillInput {
   name?: string
