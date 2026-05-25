@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState, useEffect, useCallback } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getValidation } from '@/lib/state'
 import ScoreGauge from '@/components/report/score-gauge'
@@ -40,17 +40,19 @@ export default function ReportPage({
   if (!result) {
     return (
       <div className="mx-auto max-w-lg px-4 py-32 text-center">
-        <div className="text-6xl mb-4 text-zinc-300">404</div>
-        <h2 className="text-xl font-semibold text-zinc-900 mb-2">Report Not Found</h2>
-        <p className="text-sm text-zinc-500 mb-6">
-          This validation result could not be found. It may have been cleared from history.
-        </p>
-        <button
-          onClick={() => router.push('/')}
-          className="rounded-lg bg-shield-600 px-5 py-2 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
-        >
-          Validate a Skill
-        </button>
+        <div className="glass-card rounded-xl px-8 py-16">
+          <span className="material-symbols-outlined text-6xl text-zinc-300 mb-4">error</span>
+          <h2 className="text-xl font-semibold text-zinc-900 mb-2">Report Not Found</h2>
+          <p className="text-sm text-zinc-500 mb-6">
+            This validation result could not be found. It may have been cleared from history.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="rounded-lg bg-shield-600 px-5 py-2 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
+          >
+            Validate a Skill
+          </button>
+        </div>
       </div>
     )
   }
@@ -65,30 +67,41 @@ export default function ReportPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">{result.skillName}</h1>
-          <p className="text-sm text-zinc-500">
-            Validated {new Date(result.timestamp).toLocaleString()} &middot; {result.source?.type || 'direct'}
-          </p>
+      <div className="glass-card mb-8 flex items-center justify-between rounded-xl px-6 py-4">
+        <div className="flex items-center gap-3">
+          <span className="material-symbols-outlined text-3xl text-shield-600">description</span>
+          <div>
+            <h1 className="text-xl font-bold text-zinc-900">{result.skillName}</h1>
+            <p className="flex items-center gap-1 text-xs text-zinc-500">
+              <span className="material-symbols-outlined text-[14px]">schedule</span>
+              Validated {new Date(result.timestamp).toLocaleString()}
+              <span className="mx-1">&middot;</span>
+              <span className="material-symbols-outlined text-[14px]">cloud</span>
+              {result.source?.type || 'direct'}
+            </p>
+          </div>
         </div>
         <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${
+          className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase ${
             riskBadgeColor[result.riskLevel]
           }`}
         >
+          <span className="material-symbols-outlined text-[14px]">shield</span>
           {result.riskLevel}
         </span>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <ScoreGauge score={result.overallScore} riskLevel={result.riskLevel} />
+          <div className="glass-card rounded-xl p-6">
+            <ScoreGauge score={result.overallScore} riskLevel={result.riskLevel} />
+          </div>
         </div>
 
         <div className="lg:col-span-2">
-          <div className="rounded-xl border border-zinc-200 p-6">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="glass-card rounded-xl p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+              <span className="material-symbols-outlined text-lg">donut_small</span>
               10-Axis Assessment
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -131,9 +144,10 @@ export default function ReportPage({
       </div>
 
       <div className="mb-8">
-        <div className="rounded-xl border border-zinc-200">
-          <div className="border-b border-zinc-200 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+        <div className="glass-card rounded-xl">
+          <div className="border-b border-zinc-200/60 p-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+              <span className="material-symbols-outlined text-lg">list_alt</span>
               Security Findings ({result.findings.length})
             </h3>
           </div>
@@ -142,8 +156,9 @@ export default function ReportPage({
       </div>
 
       <div className="mb-8">
-        <div className="rounded-xl border border-zinc-200 p-4">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+        <div className="glass-card rounded-xl p-4">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+            <span className="material-symbols-outlined text-lg">device_hub</span>
             Agent Compatibility
           </h3>
           <CompatibilityGrid agents={result.compatibility.agents} />
@@ -151,8 +166,9 @@ export default function ReportPage({
       </div>
 
       <div className="mb-8">
-        <div className="rounded-xl border border-zinc-200 p-4">
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+        <div className="glass-card rounded-xl p-4">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+            <span className="material-symbols-outlined text-lg">code</span>
             SKILL.md Preview
           </h3>
           <pre className="max-h-80 overflow-auto rounded-lg bg-zinc-50 p-4 text-xs leading-relaxed text-zinc-700">
@@ -166,8 +182,9 @@ export default function ReportPage({
       <div className="mt-6 text-center">
         <button
           onClick={() => router.push('/')}
-          className="rounded-lg border border-zinc-300 px-5 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-5 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
         >
+          <span className="material-symbols-outlined text-lg">add_circle</span>
           Validate Another Skill
         </button>
       </div>

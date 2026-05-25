@@ -46,7 +46,7 @@ export default function ScoreGauge({ score, riskLevel }: ScoreGaugeProps) {
   }
 
   return (
-    <div className="flex flex-col items-center rounded-xl border border-zinc-200 p-6">
+    <div className="flex flex-col items-center">
       <div className="relative flex items-center justify-center">
         <svg width="180" height="180" className="-rotate-90">
           <circle
@@ -74,10 +74,10 @@ export default function ScoreGauge({ score, riskLevel }: ScoreGaugeProps) {
           <span className={`text-5xl font-bold ${color} transition-colors duration-500`}>
             {animatedScore}
           </span>
-          <span className="text-xs font-medium text-zinc-400">/ 100</span>
+          <span className="text-xs font-medium text-on-surface-secondary">/ 100</span>
         </div>
       </div>
-      <span className="mt-2 text-sm font-semibold text-zinc-700 uppercase">
+      <span className="mt-2 text-sm font-semibold text-on-surface uppercase">
         {riskLabel[riskLevel] || riskLevel}
       </span>
     </div>

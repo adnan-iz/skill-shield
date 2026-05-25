@@ -30,9 +30,9 @@ export default function HistoryPage() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Validation History</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">History</h1>
           <p className="text-sm text-zinc-500">
-            {validations.length} past validation{validations.length !== 1 ? 's' : ''}
+            {validations.length} validation{validations.length !== 1 ? 's' : ''} recorded
           </p>
         </div>
         {validations.length > 0 && (
@@ -46,21 +46,10 @@ export default function HistoryPage() {
       </div>
 
       {validations.length === 0 ? (
-        <div className="rounded-xl border-2 border-dashed border-zinc-200 p-16 text-center">
-          <div className="text-4xl mb-2 text-zinc-300">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="mx-auto size-12 text-zinc-300"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
+        <div className="glass-card rounded-2xl p-16 text-center">
+          <span className="material-symbols-outlined mb-3 inline-block text-5xl text-zinc-300">
+            history
+          </span>
           <h2 className="text-lg font-semibold text-zinc-900 mb-1">No history yet</h2>
           <p className="text-sm text-zinc-500 mb-6">
             Validate your first skill to see results here
@@ -73,15 +62,15 @@ export default function HistoryPage() {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {validations.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => router.push(`/validate/${v.id}`)}
-              className="w-full rounded-xl border border-zinc-200 bg-white p-4 text-left transition-colors hover:border-shield-300 hover:bg-shield-50/50"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-shrink-0 text-center">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="divide-y divide-zinc-100">
+            {validations.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => router.push(`/validate/${v.id}`)}
+                className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-black/[0.02]"
+              >
+                <div className="flex-shrink-0 text-center w-14">
                   <div
                     className={`text-xl font-bold ${
                       v.overallScore >= 70
@@ -110,9 +99,9 @@ export default function HistoryPage() {
                 >
                   {v.riskLevel}
                 </span>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

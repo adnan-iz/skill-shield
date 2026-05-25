@@ -17,8 +17,50 @@
   --color-threat-medium: #ca8a04;
   --color-threat-low: #65a30d;
   --color-threat-info: #2563eb;
+
+  --color-surface: #f8fafc;
+  --color-surface-secondary: #f1f5f9;
+  --color-surface-container: #ffffff;
+  --color-on-surface: #0f172a;
+  --color-on-surface-secondary: #475569;
+  --color-outline: #e2e8f0;
+  --color-outline-variant: #cbd5e1;
+  --color-error: #dc2626;
+  --color-error-container: #fef2f2;
+  --color-secondary: #6366f1;
+  --color-secondary-container: #eef2ff;
+  --color-tertiary: #8b5cf6;
+  --color-tertiary-container: #f5f3ff;
+
+  --color-stitch-sidebar: #0f172a;
+  --color-stitch-sidebar-hover: #1e293b;
+  --color-stitch-sidebar-active: #22c55e;
 }
 
-body {
-  font-family: var(--font-inter), system-ui, sans-serif;
+@layer base {
+  body {
+    font-family: var(--font-inter), system-ui, sans-serif;
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-outline);
+  }
+
+  .glass-card-strong {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--color-outline);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
 }

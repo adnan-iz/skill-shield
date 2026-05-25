@@ -55,14 +55,14 @@ export default function ComparePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-1">Compare Validation Results</h1>
+      <h1 className="text-2xl font-bold text-zinc-900 mb-1">Compare</h1>
       <p className="text-sm text-zinc-500 mb-8">
-        Compare two skills side by side to see differences in scores, findings, and compatibility.
+        Compare two skills side by side
       </p>
 
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
+        <div className="glass-card p-5">
+          <div className="mb-3 flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-700">Left</span>
             <button
               onClick={() => setLeftSource('paste')}
@@ -103,14 +103,14 @@ export default function ComparePage() {
           )}
           <button
             onClick={() => runCompare('left')}
-            className="mt-2 rounded-lg bg-shield-600 px-4 py-2 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
+            className="mt-3 rounded-lg bg-shield-600 px-4 py-2 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
           >
             Analyze
           </button>
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center gap-2">
+        <div className="glass-card p-5">
+          <div className="mb-3 flex items-center gap-2">
             <span className="text-sm font-semibold text-zinc-700">Right</span>
             <button
               onClick={() => setRightSource('paste')}
@@ -151,7 +151,7 @@ export default function ComparePage() {
           )}
           <button
             onClick={() => runCompare('right')}
-            className="mt-2 rounded-lg bg-shield-600 px-4 py-2 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
+            className="mt-3 rounded-lg bg-shield-600 px-4 py-2 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
           >
             Analyze
           </button>
@@ -161,16 +161,16 @@ export default function ComparePage() {
       {(leftResult || rightResult) && (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Score</div>
+            <div className="glass-card p-4 text-center">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Score diff</div>
               <div className="text-lg font-bold text-zinc-900">{computeDiff('score', leftResult, rightResult)}</div>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Findings</div>
+            <div className="glass-card p-4 text-center">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Findings diff</div>
               <div className="text-lg font-bold text-zinc-900">{computeDiff('findings', leftResult, rightResult)}</div>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Risk Level</div>
+            <div className="glass-card p-4 text-center">
+              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Risk diff</div>
               <div className="text-lg font-bold text-zinc-900">{computeDiff('risk', leftResult, rightResult)}</div>
             </div>
           </div>
@@ -215,8 +215,8 @@ export default function ComparePage() {
       )}
 
       {!leftResult && !rightResult && (
-        <div className="rounded-xl border-2 border-dashed border-zinc-200 p-16 text-center">
-          <div className="text-4xl mb-2 text-zinc-300">&lt; &rarr; &gt;</div>
+        <div className="glass-card p-16 text-center">
+          <span className="material-symbols-outlined text-4xl text-zinc-300 mb-2 inline-block">compare_arrows</span>
           <p className="text-sm text-zinc-500">
             Paste SKILL.md content or load by ID on both sides to compare
           </p>

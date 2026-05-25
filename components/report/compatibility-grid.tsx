@@ -62,7 +62,7 @@ export default function CompatibilityGrid({ agents }: CompatibilityGridProps) {
             </svg>
             <span className="truncate text-xs font-medium">{agent.name}</span>
             {isHovered && agent.notes && (
-              <div className="absolute -bottom-1 left-1/2 z-10 w-48 -translate-x-1/2 translate-y-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-600 shadow-lg">
+              <div className="absolute -bottom-1 left-1/2 z-10 w-48 -translate-x-1/2 translate-y-full rounded-md border border-outline bg-surface-container px-3 py-2 text-xs text-on-surface-secondary shadow-lg">
                 {agent.notes}
               </div>
             )}

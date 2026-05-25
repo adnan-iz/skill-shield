@@ -74,15 +74,15 @@ export default function FindingsTable({ findings }: FindingsTableProps) {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 border-b border-zinc-200 px-4 pb-3 pt-3">
+      <div className="flex flex-wrap gap-2 border-b border-outline px-4 pb-3 pt-3">
         {filterOptions.map((opt) => (
           <button
             key={opt.value}
             onClick={() => setFilterSeverity(opt.value)}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               filterSeverity === opt.value
-                ? 'bg-zinc-800 text-white'
-                : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
+                ? 'bg-on-surface text-white'
+                : 'bg-surface-secondary text-on-surface-secondary hover:bg-outline'
             }`}
           >
             {opt.label}
@@ -93,21 +93,21 @@ export default function FindingsTable({ findings }: FindingsTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-xs font-semibold uppercase text-zinc-500">
+            <tr className="border-b border-outline text-left text-xs font-semibold uppercase text-on-surface-secondary">
               <th
-                className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                className="cursor-pointer px-4 py-3 hover:text-on-surface"
                 onClick={() => toggleSort('severity')}
               >
                 Severity{sortArrow('severity')}
               </th>
               <th
-                className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                className="cursor-pointer px-4 py-3 hover:text-on-surface"
                 onClick={() => toggleSort('category')}
               >
                 Category{sortArrow('category')}
               </th>
               <th
-                className="cursor-pointer px-4 py-3 hover:text-zinc-700"
+                className="cursor-pointer px-4 py-3 hover:text-on-surface"
                 onClick={() => toggleSort('title')}
               >
                 Title{sortArrow('title')}
@@ -122,8 +122,8 @@ export default function FindingsTable({ findings }: FindingsTableProps) {
               return (
                 <tr
                   key={`${finding.filePath}:${finding.lineNumber}:${idx}`}
-                  className={`border-b border-zinc-100 transition-colors ${
-                    isExpanded ? 'bg-zinc-50' : 'hover:bg-zinc-50'
+                  className={`border-b border-outline transition-colors ${
+                    isExpanded ? 'bg-surface-secondary' : 'hover:bg-surface-secondary'
                   }`}
                 >
                   <td className="px-4 py-3">
@@ -135,33 +135,33 @@ export default function FindingsTable({ findings }: FindingsTableProps) {
                       {finding.severity}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-600">{finding.category}</td>
+                  <td className="px-4 py-3 text-on-surface-secondary">{finding.category}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setExpandedRow(isExpanded ? null : idx)}
-                      className="text-left font-medium text-zinc-900 hover:text-shield-600 transition-colors"
+                      className="text-left font-medium text-on-surface hover:text-shield-600 transition-colors"
                     >
                       {finding.title}
                     </button>
                     {isExpanded && (
-                      <div className="mt-2 rounded-md bg-zinc-100 p-3">
-                        <div className="mb-1 text-xs font-medium text-zinc-500">Snippet</div>
-                        <pre className="overflow-auto whitespace-pre-wrap text-xs text-zinc-700">
+                      <div className="mt-2 rounded-md bg-surface-secondary p-3">
+                        <div className="mb-1 text-xs font-medium text-on-surface-secondary">Snippet</div>
+                        <pre className="overflow-auto whitespace-pre-wrap text-xs text-on-surface">
                           {finding.snippet}
                         </pre>
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-zinc-500">
+                  <td className="px-4 py-3 font-mono text-xs text-on-surface-secondary">
                     {finding.filePath}:{finding.lineNumber}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-600">{finding.recommendation}</td>
+                  <td className="px-4 py-3 text-xs text-on-surface-secondary">{finding.recommendation}</td>
                 </tr>
               )
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-zinc-400">
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-on-surface-secondary">
                   No findings match the current filter
                 </td>
               </tr>
