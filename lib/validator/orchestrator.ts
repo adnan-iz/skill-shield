@@ -13,6 +13,7 @@ import { validateBestPractices } from '@/lib/validator/best-practices'
 import {
   SkillFile, SkillInput, SkillPreview, FileTreeItem,
   ValidationResult, ValidationSummary, Finding, AxisResult,
+  CompatibilityMatrix,
 } from '@/lib/validator/types'
 export interface OrchestratorOptions {
   id?: string
@@ -110,6 +111,67 @@ function buildSummary(findings: Finding[], axes: AxisResult[]): ValidationSummar
   return summary
 }
 
+function buildCompatibilityAxis(result: CompatibilityMatrix): AxisResult {
+  const fullCount = result.agents.filter(a => a.status === 'full').length
+  const partialCount = result.agents.filter(a => a.status === 'partial').length
+  const unknownCount = result.agents.filter(a => a.status === 'unknown').length
+  const totalKnown = fullCount + partialCount
+  const ratio = totalKnown / result.agents.length
+
+  let score: number
+  let status: AxisResult['status']
+  let summary: string
+
+  if (ratio >= 0.5) {
+    score = 80 + Math.round((fullCount / result.agents.length) * 20)
+    status = 'pass'
+    summary = `Compatible with ${totalKnown}/${result.agents.length} agents (${fullCount} full, ${partialCount} partial)`
+  } else if (ratio >= 0.2) {
+    score = 40 + Math.round(ratio * 40)
+    status = 'warn'
+    summary = `Limited compatibility: ${totalKnown}/${result.agents.length} agents detected`
+  } else {
+    score = Math.round(ratio * 40)
+    status = 'fail'
+    summary = `Low compatibility: only ${totalKnown}/${result.agents.length} agents detected`
+  }
+
+  const findings: Finding[] = []
+
+  const unknownNames = result.agents.filter(a => a.status === 'unknown').map(a => a.name)
+  if (unknownNames.length > 0 && unknownNames.length < result.agents.length) {
+    findings.push({
+      id: `compat-unknown-${Date.now()}`,
+      axis: 'compatibility',
+      severity: 'info',
+      category: 'Compatibility',
+      title: 'Undetected agents',
+      message: `No compatibility data for: ${unknownNames.join(', ')}`,
+      recommendation: 'Add agent-specific instructions or detection markers if these agents should be supported',
+    })
+  }
+
+  if (unknownNames.length === result.agents.length) {
+    findings.push({
+      id: `compat-none-${Date.now()}`,
+      axis: 'compatibility',
+      severity: 'medium',
+      category: 'Compatibility',
+      title: 'No agent compatibility detected',
+      message: 'The skill does not reference any known agent. Add agent-specific instructions or configuration files.',
+      recommendation: 'Include agent-specific tags, tool calls, or configuration files (.cursor/, .claude/, .opencode/, etc.)',
+    })
+  }
+
+  if (unknownNames.length > 0 && unknownNames.length === result.agents.length) {
+    score = 0
+    status = 'fail'
+    summary = 'No agent compatibility detected'
+  }
+
+  return { name: 'Agent Compatibility', key: 'compatibility', score, status, summary, findings }
+}
+
 export async function runFullValidation(
   input: SkillInput,
   options?: OrchestratorOptions
@@ -157,6 +219,8 @@ export async function runFullValidation(
     Promise.resolve(validateBestPractices(content)),
   ])
 
+  const compatibilityAxisResult = buildCompatibilityAxis(compatibilityResult)
+
   const axes: AxisResult[] = [
     frontmatterResult,
     structureResult,
@@ -164,6 +228,7 @@ export async function runFullValidation(
     securityResult,
     qualityResult,
     tokenAxisResult,
+    compatibilityAxisResult,
     contentResult,
     dependencyResult,
     bestPracticesResult,

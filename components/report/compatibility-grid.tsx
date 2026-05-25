@@ -13,12 +13,12 @@ const statusConfig: Record<
 > = {
   full: {
     icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    color: 'text-shield-600 bg-shield-50 border-shield-200',
+    color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     label: 'Full compatibility',
   },
   partial: {
     icon: 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
-    color: 'text-orange-600 bg-orange-50 border-orange-200',
+    color: 'text-lime-700 bg-lime-50 border-lime-200',
     label: 'Partial compatibility',
   },
   unknown: {

@@ -8,38 +8,42 @@ export interface AgentInfo {
 }
 
 export const SUPPORTED_AGENTS: AgentInfo[] = [
-  { name: 'Claude Code', id: 'claude-code', supported: true, detectionPatterns: ['Bash(', 'ToolUse(', 'tool_use', 'ToolResult', '.claude/'] },
-  { name: 'OpenCode', id: 'opencode', supported: true, detectionPatterns: ['terminal(', 'Terminal(', 'tool_use', 'shell', '.opencode/'] },
-  { name: 'Cursor', id: 'cursor', supported: true, detectionPatterns: ['@web', '@cursor', 'CursorRule', '.cursor/'] },
-  { name: 'GitHub Copilot', id: 'github-copilot', supported: true, detectionPatterns: ['copilot', 'gh ', 'github.copilot'] },
-  { name: 'Windsurf', id: 'windsurf', supported: true, detectionPatterns: ['Codeium', 'windsurf', 'cascade'] },
-  { name: 'Codex CLI', id: 'codex', supported: true, detectionPatterns: ['codex', 'CodexCLI'] },
-  { name: 'Cline', id: 'cline', supported: true, detectionPatterns: ['cline', 'ask:', 'task:'] },
-  { name: 'Amp', id: 'amp', supported: true, detectionPatterns: ['amp', 'AmpConfig'] },
-  { name: 'Goose', id: 'goose', supported: true, detectionPatterns: ['goose', 'goose_mode'] },
-  { name: 'Manus', id: 'manus', supported: true, detectionPatterns: ['manus', 'ManusConfig'] },
-  { name: 'Replit Agent', id: 'replit', supported: true, detectionPatterns: ['replit', 'nix', '.replit'] },
-  { name: 'Aider', id: 'aider', supported: true, detectionPatterns: ['aider', 'AiderConfig'] },
-  { name: 'Mistral Vibe', id: 'mistral-vibe', supported: true, detectionPatterns: ['vibe', 'mistral'] },
-  { name: 'OpenClaw', id: 'openclaw', supported: true, detectionPatterns: ['openclaw', 'claw'] },
-  { name: 'Zed AI', id: 'zed', supported: true, detectionPatterns: ['zed', 'ZedConfig', '.zed/'] },
-  { name: 'JetBrains AI', id: 'jetbrains', supported: true, detectionPatterns: ['jetbrains', 'idea', 'IntelliJ'] },
-  { name: 'Trae', id: 'trae', supported: true, detectionPatterns: ['trae', '.trae/'] },
-  { name: 'Antigravity', id: 'antigravity', supported: true, detectionPatterns: ['antigravity', 'ag_'] },
-  { name: 'Gemini CLI', id: 'gemini-cli', supported: true, detectionPatterns: ['gemini', 'gcli'] },
-  { name: 'Kiro', id: 'kiro', supported: true, detectionPatterns: ['kiro', 'KiroAI'] },
-  { name: 'Roo', id: 'roo', supported: true, detectionPatterns: ['roo', 'RooConfig'] },
-  { name: 'Continue', id: 'continue', supported: true, detectionPatterns: ['continue', 'ContinueConfig', '.continue/'] },
-  { name: 'Sourcegraph Cody', id: 'sourcegraph', supported: true, detectionPatterns: ['cody', 'sourcegraph', 'sg '] },
+  { name: 'Claude Code', id: 'claude-code', supported: true, detectionPatterns: ['Claude Code', 'claude-code', 'ClaudeCode', 'Bash(', 'ToolUse(', 'ToolResult', '.claude/', 'claude-3'] },
+  { name: 'OpenCode', id: 'opencode', supported: true, detectionPatterns: ['OpenCode', 'opencode', 'open-code', 'tool_use', 'terminal(', '.opencode/'] },
+  { name: 'Cursor', id: 'cursor', supported: true, detectionPatterns: ['Cursor', '@web', '@cursor', 'CursorRule', '.cursor/', 'cursor'] },
+  { name: 'GitHub Copilot', id: 'github-copilot', supported: true, detectionPatterns: ['GitHub Copilot', 'github-copilot', 'github.copilot', 'copilot', 'gh copilot'] },
+  { name: 'Windsurf', id: 'windsurf', supported: true, detectionPatterns: ['Windsurf', 'Codeium', 'windsurf', 'cascade', 'windsurf'] },
+  { name: 'Codex CLI', id: 'codex', supported: true, detectionPatterns: ['Codex CLI', 'codex-cli', 'CodexCLI', 'codex_cli', 'codex'] },
+  { name: 'Cline', id: 'cline', supported: true, detectionPatterns: ['Cline', 'ask:', 'task:', 'cline'] },
+  { name: 'Amp', id: 'amp', supported: true, detectionPatterns: ['Amp', 'AmpConfig', 'amp-agent'] },
+  { name: 'Goose', id: 'goose', supported: true, detectionPatterns: ['Goose', 'goose_mode', 'goose-mode', 'goose'] },
+  { name: 'Manus', id: 'manus', supported: true, detectionPatterns: ['Manus', 'ManusConfig', 'manus-agent'] },
+  { name: 'Replit Agent', id: 'replit', supported: true, detectionPatterns: ['Replit Agent', 'replit-agent', 'ReplitAgent', '.replit', 'nix', 'replit'] },
+  { name: 'Aider', id: 'aider', supported: true, detectionPatterns: ['Aider', 'AiderConfig', 'aider-ai', 'aider'] },
+  { name: 'Mistral Vibe', id: 'mistral-vibe', supported: true, detectionPatterns: ['Mistral Vibe', 'Mistral-Vibe', 'MistralVibe', 'vibe', 'mistral'] },
+  { name: 'OpenClaw', id: 'openclaw', supported: true, detectionPatterns: ['OpenClaw', 'OpenClaw', 'openclaw', 'claw'] },
+  { name: 'Zed AI', id: 'zed', supported: true, detectionPatterns: ['Zed AI', 'Zed-AI', 'ZedConfig', '.zed/', 'zed'] },
+  { name: 'JetBrains AI', id: 'jetbrains', supported: true, detectionPatterns: ['JetBrains AI', 'JetBrains', 'IntelliJ', 'WebStorm', 'PyCharm', 'jetbrains', 'idea'] },
+  { name: 'Trae', id: 'trae', supported: true, detectionPatterns: ['Trae', '.trae/', 'trae-agent'] },
+  { name: 'Antigravity', id: 'antigravity', supported: true, detectionPatterns: ['Antigravity', 'antigravity', 'ag_', 'ag-'] },
+  { name: 'Gemini CLI', id: 'gemini-cli', supported: true, detectionPatterns: ['Gemini CLI', 'Gemini-CLI', 'GeminiCLI', 'gcli', 'gemini'] },
+  { name: 'Kiro', id: 'kiro', supported: true, detectionPatterns: ['Kiro', 'KiroAI', 'kiro-ai', 'kiro'] },
+  { name: 'Roo', id: 'roo', supported: true, detectionPatterns: ['Roo', 'RooConfig', 'roo-cli', 'roo'] },
+  { name: 'Continue', id: 'continue', supported: true, detectionPatterns: ['Continue', 'ContinueConfig', '.continue/', 'continue.dev'] },
+  { name: 'Sourcegraph Cody', id: 'sourcegraph', supported: true, detectionPatterns: ['Sourcegraph Cody', 'Sourcegraph-Cody', 'SourcegraphCody', 'cody', 'sourcegraph', 'sg '] },
 ]
+
+function matchPattern(content: string, pattern: string): boolean {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const isSimpleName = /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(pattern)
+  const regex = isSimpleName ? new RegExp(`\\b${escaped}\\b`, 'i') : new RegExp(escaped, 'i')
+  return regex.test(content)
+}
 
 function countPatternMatches(content: string, patterns: string[]): number {
   let count = 0
   for (const pattern of patterns) {
-    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    if (new RegExp(escaped, 'i').test(content)) {
-      count++
-    }
+    if (matchPattern(content, pattern)) count++
   }
   return count
 }
@@ -47,10 +51,7 @@ function countPatternMatches(content: string, patterns: string[]): number {
 function findPatternMatches(content: string, patterns: string[]): string[] {
   const found: string[] = []
   for (const pattern of patterns) {
-    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    if (new RegExp(escaped, 'i').test(content)) {
-      found.push(pattern)
-    }
+    if (matchPattern(content, pattern)) found.push(pattern)
   }
   return found
 }

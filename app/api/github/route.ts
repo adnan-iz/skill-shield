@@ -66,23 +66,37 @@ async function resolvePath(owner: string, repo: string, path: string): Promise<{
   }
 
   const segments = path.split('/')
-  const candidateBranch = segments[0]
+  const first = segments[0]
   const rest = segments.slice(1).join('/')
 
-  const testUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${candidateBranch}`
-  const testRes = await fetchWithTimeout(testUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
-  if (testRes.ok) {
-    return { branch: candidateBranch, treePath: rest }
+  if (rest) {
+    // Multi-segment: GitHub URL with branch prefix (e.g. "main/skills/foo")
+    const testUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${first}`
+    const testRes = await fetchWithTimeout(testUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
+    if (testRes.ok) {
+      return { branch: first, treePath: rest }
+    }
+    const defaultBranch = await getDefaultBranch(owner, repo)
+    return { branch: defaultBranch, treePath: path }
   }
 
+  // Single segment: skills.sh URL style (just skill name, no branch)
+  // Try directory discovery first, fall back to branch
   const defaultBranch = await getDefaultBranch(owner, repo)
 
-  const discovered = await findSkillDirectory(owner, repo, defaultBranch, path)
+  const discovered = await findSkillDirectory(owner, repo, defaultBranch, first)
   if (discovered) {
     return { branch: defaultBranch, treePath: discovered }
   }
 
-  return { branch: defaultBranch, treePath: path }
+  // No directory found — try as a branch name
+  const testUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${first}`
+  const testRes = await fetchWithTimeout(testUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
+  if (testRes.ok) {
+    return { branch: first, treePath: '' }
+  }
+
+  return { branch: defaultBranch, treePath: first }
 }
 
 async function findSkillDirectory(owner: string, repo: string, branch: string, skillName: string): Promise<string | null> {

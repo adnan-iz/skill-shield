@@ -111,8 +111,8 @@ function generateHtmlReport(result: ValidationResult): string {
     .sev-low { background: #f7fee7; color: #65a30d; }
     .sev-info { background: #eff6ff; color: #2563eb; }
     .compat { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; margin: 0.25rem; }
-    .full { background: #f0fdf4; color: #166534; }
-    .partial { background: #fff7ed; color: #9a3412; }
+    .full { background: #ecfdf5; color: #047857; }
+    .partial { background: #ecfccb; color: #4d7c0f; }
     .unknown { background: #fafafa; color: #71717a; }
     .incompatible { background: #fef2f2; color: #991b1b; }
     .axis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem; }
