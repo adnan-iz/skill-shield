@@ -2,6 +2,14 @@
 
 **Pre-flight Validation & Security Scanning for Agent Skills**
 
+## 🚀 Live App
+
+👉 **Try SkillShield here:** [https://ai-skill-shield.vercel.app/](https://ai-skill-shield.vercel.app/)
+
+SkillShield is available as a live web app where you can upload a `SKILL.md`, paste a GitHub URL, or scan a skill package before running it in production.
+
+---
+
 SkillShield is a comprehensive validation platform for the open Agent Skills ecosystem. It analyzes `SKILL.md`-based skill packages across **11 validation axes** — security, quality, structure, compatibility, installation risk, and more — before you run them in production.
 
 [![Next.js](https://img.shields.io/badge/Next.js_16-000?logo=next.js)](https://nextjs.org)
