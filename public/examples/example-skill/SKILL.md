@@ -1,27 +1,36 @@
 ---
-name: code-reviewer
-description: Reviews code for bugs, security issues, and style violations. Use when the user asks to review code, check a PR, or find issues in a file.
+name: example-skill
+description: A clean demonstration skill. Use this to test basic validation and see SkillShield reporting features.
+agent: opencode
+version: 1.0.0
+author: SkillShield
 license: MIT
-metadata:
-  author: SkillShield
-  version: "1.0.0"
+tags:
+  - demonstration
+  - example
+  - tutorial
 ---
 
-# Code Reviewer
+# Example Skill
 
-Reviews code for bugs, security issues, and style violations in any language.
+A safe, clean skill for testing SkillShield's validation pipeline.
 
 ## Usage
 
-When asked to review code, follow these steps:
+This skill can be used to:
+- Test the validation API
+- View the report dashboard
+- Understand scoring axes
 
-1. Parse the code to understand its structure
-2. Check for common bug patterns
-3. Identify security vulnerabilities
-4. Suggest style improvements
-5. Provide a summary report
+## Configuration
 
-## Example
+```json
+{
+  "name": "example-skill",
+  "version": "1.0.0"
+}
+```
 
-User: "Review this code"
-Agent: Runs the review workflow and produces a report.
+## Notes
+
+For security testing with malicious patterns, use the **Paste** tab on the landing page to paste content containing threat patterns directly — no files written to disk.

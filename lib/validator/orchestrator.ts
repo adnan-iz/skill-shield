@@ -10,6 +10,7 @@ import { detectCompatibility } from '@/lib/validator/compatibility'
 import { validateContent } from '@/lib/validator/content'
 import { validateDependencies } from '@/lib/validator/dependencies'
 import { validateBestPractices } from '@/lib/validator/best-practices'
+import { validateInstallation } from '@/lib/validator/installation'
 import {
   SkillFile, SkillInput, SkillPreview, FileTreeItem,
   ValidationResult, ValidationSummary, Finding, AxisResult,
@@ -205,6 +206,7 @@ export async function runFullValidation(
     contentResult,
     dependencyResult,
     bestPracticesResult,
+    installationResult,
   ] = await Promise.all([
     Promise.resolve(validateFrontmatter(frontmatter)),
     Promise.resolve(validateStructure(input.files)),
@@ -217,6 +219,7 @@ export async function runFullValidation(
     Promise.resolve(validateContent(content)),
     Promise.resolve(validateDependencies(content)),
     Promise.resolve(validateBestPractices(content)),
+    Promise.resolve(validateInstallation(input.files)),
   ])
 
   const compatibilityAxisResult = buildCompatibilityAxis(compatibilityResult)
@@ -231,21 +234,23 @@ export async function runFullValidation(
     compatibilityAxisResult,
     contentResult,
     dependencyResult,
+    installationResult,
     bestPracticesResult,
   ]
 
   const allFindings = axes.flatMap(a => a.findings)
 
   const weights: Record<string, number> = {
-    security: 0.30,
-    frontmatter: 0.20,
-    quality: 0.15,
+    security: 0.25,
+    frontmatter: 0.18,
+    quality: 0.12,
     structure: 0.10,
     naming: 0.05,
     tokens: 0.05,
     compatibility: 0.05,
     content: 0.05,
     dependencies: 0.03,
+    installation: 0.07,
     bestPractices: 0.02,
   }
 

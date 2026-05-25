@@ -113,4 +113,5 @@ export type ValidationAxis =
   | 'tokens'
   | 'compatibility'
   | 'dependencies'
+  | 'installation'
   | 'bestPractices'

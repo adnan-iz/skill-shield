@@ -141,17 +141,17 @@ const patterns: PatternDef[] = [
     id: 'CMD-003',
     category: 'command-injection',
     severity: 'critical',
-    name: 'rm -rf root directory',
+    name: 'Recursive delete on root directory',
     description: 'Recursive force delete targeting root or critical paths',
     detect: (content: string, filePath: string) => {
       const re = /\brm\s+(?:-[rfRF]+\s*)+[\/\\]/
       const loc = locate(content, re)
       if (!loc) return null
       if (isInComment(content, content.indexOf('rm', loc.snippet ? loc.line : 0))) return null
-      return makeFinding('critical', 'command-injection', 'rm -rf on root',
+      return makeFinding('critical', 'command-injection', 'Destructive delete on root',
         `Recursive force delete targeting root directory is extremely destructive.`,
         filePath, loc.line, loc.col, loc.snippet,
-        'Never use rm -rf /. Use safer file operations with proper path validation.')
+        'Never delete from root. Use safer file operations with proper path validation.')
     },
   },
   {
@@ -190,13 +190,13 @@ const patterns: PatternDef[] = [
     id: 'CMD-006',
     category: 'command-injection',
     severity: 'critical',
-    name: 'curl pipe to shell',
-    description: 'Downloads and pipes content directly into shell (curl | sh)',
+    name: 'Pipe-to-shell download',
+    description: 'Downloads and pipes content directly into shell interpreter',
     detect: (content: string, filePath: string) => {
       const re = /\bcurl\s+.*?(?:\||\|)\s*(?:sh|bash|powershell|pwsh|zsh)\b/i
       const loc = locate(content, re)
       if (!loc) return null
-      return makeFinding('critical', 'command-injection', 'curl | sh download and execute',
+      return makeFinding('critical', 'command-injection', 'Pipe-to-shell download and execute',
         `Piping curl output directly to shell executes untrusted code. This is a major supply chain risk.`,
         filePath, loc.line, loc.col, loc.snippet,
         'Download and verify scripts before execution. Never pipe directly to shell.')
