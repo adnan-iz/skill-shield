@@ -17,22 +17,27 @@ SkillShield is a **full-stack Next.js 16 application** with a three-tier archite
     └──────┬──────┘              └───────┬────────┘
            │                              │
     ┌──────▼─────────────────────────────▼────────┐
-    │              Next.js API Routes              │
-    │   POST /api/validate    GET /api/validate    │
-    │   GET /api/report                            │
+    │           Next.js API Routes                 │
+    │   POST /api/validate   GET /api/validate     │
+    │   GET  /api/report     POST /api/github      │
     └──────┬───────────────────────────────────────┘
            │
     ┌──────▼───────────────────────────────────────┐
     │            Validation Engine (lib/)           │
     │                                              │
     │  ┌──────────────┐  ┌─────────────────────┐   │
-    │  │  Orchestrator │──▶ 10 Validation Axes │   │
+    │  │  Orchestrator │──▶ 11 Validation Axes  │   │
     │  └──────────────┘  └─────────────────────┘   │
     │         │                                     │
     │    ┌────▼─────┐  ┌──────────┐  ┌──────────┐  │
     │    │ Security  │  │ Parser   │  │ Report   │  │
     │    │ Scanner   │  │          │  │ Generator│  │
     │    └───────────┘  └──────────┘  └──────────┘  │
+    │         │                                     │
+    │    ┌────▼─────┐                               │
+    │    │ Security │  (input validation, rate limit)│
+    │    │ Modules  │                               │
+    │    └──────────┘                               │
     └────────────────────────────────────────────────┘
 ```
 
@@ -40,10 +45,10 @@ SkillShield is a **full-stack Next.js 16 application** with a three-tier archite
 
 ## Validation Pipeline
 
-The core validation flow is orchestrated by `lib/validator/orchestrator.ts`:
+The core validation flow is orchestrated by `lib/validator/orchestrator.ts`. It accepts a `SkillInput` JSON (files array with paths + content, optional name/source metadata) and returns a `ValidationResult`.
 
 ```
-SkillInput (JSON / File Upload / GitHub URL)
+SkillInput (JSON / File Upload / GitHub URL / Paste)
          │
          ▼
 ┌─────────────────────┐
@@ -55,43 +60,55 @@ SkillInput (JSON / File Upload / GitHub URL)
           │
           ▼
 ┌─────────────────────┐
-│  2. Run Validators   │  Parallel execution
+│  2. Run Validators   │  Parallel via Promise.all (11 axes)
 │                     │
-│  ┌── Security ──────┤  lib/scanner/
-│  │  ├─ Threat       │    patterns.ts (60+ regex)
-│  │  │   Patterns    │    security.ts
-│  │  ├─ Secrets      │    secrets.ts (14 types)
-│  │  └─ Obfuscation  │    obfuscation.ts
+│  ┌── Security ──────┤  lib/scanner/ (3 sub-layers)
+│  │   (25%)          │    patterns.ts (100+ patterns, 12 categories)
+│  │                  │    secrets.ts (14 secret types)
+│  │                  │    obfuscation.ts (10 detection checks)
 │  ├── Frontmatter ───┤  lib/validator/frontmatter.ts
+│  │   (18%)          │    2 required, 7 recommended, unknown-field warn
 │  ├── Quality ───────┤  lib/validator/quality.ts
+│  │   (12%)          │    5 sub-dimensions: readability, completeness,
+│  │                  │    clarity, examples, accessibility
 │  ├── Structure ─────┤  lib/validator/structure.ts
+│  │   (10%)          │    max depth 3, max size 10MB, binary checks
+│  ├── Installation ──┤  lib/validator/installation.ts
+│  │   (7%)           │    17 risk patterns: install scripts, Docker,
+│  │                  │    system services, registry, Windows
 │  ├── Naming ────────┤  lib/validator/naming.ts
+│  │   (5%)           │    1–64 chars, lowercase+hyphens, 30+ reserved
 │  ├── Tokens ────────┤  lib/validator/tokens.ts
+│  │   (5%)           │    ~4 chars/token, 5000 limit, section breakdown
+│  ├── Compatibility ─┤  lib/validator/compatibility.ts
+│  │   (5%)           │    23 agents, 4 statuses (full/partial/unknown/incompatible)
 │  ├── Content ───────┤  lib/validator/content.ts
-│  ├── Deps ──────────┤  lib/validator/dependencies.ts
-│  ├── BestPractices ─┤  lib/validator/best-practices.ts
-│  └── Compat ────────┤  lib/validator/compatibility.ts
+│  │   (5%)           │    non-empty check
+│  ├── Dependencies ──┤  lib/validator/dependencies.ts
+│  │   (3%)           │    require()/import detection
+│  └── BestPractices ─┤  lib/validator/best-practices.ts
+│      (2%)           │    version + license keyword presence
 └─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
 │  3. Aggregate Scores │  Weighted average
-│  - Per-axis scores   │  (Security: 30%, FM: 20%, 
-│  - Overall score     │   Quality: 15%, Structure: 10%,
-│  - Risk level        │   Naming/Tokens/Content: 5% ea.,
-└─────────┬───────────┘   Deps: 3%, BestPrac: 2%)
+│  - Per-axis scores   │  (weights sum to 1.0)
+│  - Overall score     │  score = Σ(axis.score * weight)
+│  - Risk level        │  critical > high > medium > low > safe
+└─────────┬───────────┘
           │
           ▼
 ┌─────────────────────┐
-│  4. Generate Report  │  lib/report/ report-data.ts
-│  - Findings          │
-│  - Recommendations   │
-│  - Export formats    │  PDF via lib/report/pdf.ts
+│  4. Generate Report  │  lib/report/report-data.ts
+│  - 8 report sections │  (executive summary, security, quality,
+│  - Recommendations   │   compatibility, tokens, findings, recs, tree)
+│  - Export formats    │  PDF via lib/report/pdf.ts (HTML+print CSS)
 └─────────┬───────────┘
           │
           ▼
     Store + Return
-   (Map + localStorage)
+   (Map<string, Result> + localStorage)
 ```
 
 ---
@@ -106,6 +123,7 @@ File Content
      ▼
 ┌─────────────────────────────────────────────┐
 │ Layer 1: Threat Pattern Matching            │
+│  12 categories, 100+ patterns               │
 │                                             │
 │  ├─ Command Injection (16 patterns)         │
 │  │   exec(), spawn(), child_process,        │
@@ -120,35 +138,74 @@ File Content
 │  │   SSH keys, AWS creds, GCloud, .env,     │
 │  │   /etc/passwd, /etc/shadow, browser      │
 │  │                                          │
-│  └─ Prompt Injection (8 patterns)           │
-│      "ignore previous instructions", DAN,   │
-│      system prompt extraction, role-play    │
+│  ├─ Prompt Injection (8 patterns)           │
+│  │   "ignore previous instructions", DAN,   │
+│  │   system prompt extraction, role-play    │
+│  │                                          │
+│  ├─ Obfuscation (12 patterns)               │
+│  │   ROT13, hex, base64, layered encoding   │
+│  │                                          │
+│  ├─ Sensitive File Access (10 patterns)     │
+│  │   .env, /etc/passwd, SSH, GPG, kube     │
+│  │                                          │
+│  ├─ External Calls (10 patterns)            │
+│  │   curl/wget/fetch to external hosts,     │
+│  │   DNS queries, IPFS, Tor                 │
+│  │                                          │
+│  ├─ Persistence (8 patterns)                │
+│  │   cron, systemd, startup, scheduled tasks│
+│  │                                          │
+│  ├─ Social Engineering (7 patterns)         │
+│  │   urgency, impersonation, fake errors    │
+│  │                                          │
+│  ├─ ClickFix Attack (5 patterns)            │
+│  │   clipboard redirect, fake captcha,      │
+│  │   Run/Dialog simulation                  │
+│  │                                          │
+│  ├─ Staged Malware (4 patterns)             │
+│  │   download+execute, multi-stage payload  │
+│  │                                          │
+│  └─ Second-Order Injection (5 patterns)     │
+│      template injection, log injection,     │
+│      stored payload, delayed execution      │
 └───────────────────┬─────────────────────────┘
                     │
                     ▼
 ┌─────────────────────────────────────────────┐
 │ Layer 2: Hardcoded Secret Detection         │
+│  14 rule types                              │
 │                                             │
-│  ├─ OpenAI / Anthropic API keys             │
-│  ├─ AWS Access Keys                         │
-│  ├─ GitHub Tokens                           │
-│  ├─ JWT Tokens                              │
-│  ├─ Database URLs                           │
-│  ├─ Slack / Discord / Stripe tokens         │
-│  └─ Generic passwords                       │
+│  ├─ sk-* (OpenAI)            critical       │
+│  ├─ sk-ant-* (Anthropic)     critical       │
+│  ├─ AKIA* (AWS)              critical       │
+│  ├─ ghp_/gho_/ghu_ (GitHub)  critical       │
+│  ├─ -----BEGIN KEY-----      critical       │
+│  ├─ postgres://mysql://...    critical       │
+│  ├─ xox[baprs]-* (Slack)     critical       │
+│  ├─ Discord tokens           critical       │
+│  ├─ sk_live_/pk_live_ (Stripe) critical      │
+│  ├─ JWT tokens               high           │
+│  ├─ api_key/apikey values    high           │
+│  ├─ password/secret values   critical/high  │
+│  └─ generic secret/token vals  high         │
 └───────────────────┬─────────────────────────┘
                     │
                     ▼
 ┌─────────────────────────────────────────────┐
 │ Layer 3: Obfuscation Detection              │
+│  10 detection checks                        │
 │                                             │
-│  ├─ Hexadecimal / Base64 encoding           │
-│  ├─ Multi-layer encoding (hex→base64)       │
+│  ├─ Hex-encoded strings                     │
+│  ├─ Base64 encoded strings                  │
 │  ├─ Zero-width Unicode characters           │
-│  ├─ Homoglyph character substitution        │
+│  ├─ Homoglyph substitution (Cyrillic,       │
+│  │   fullwidth Latin)                       │
+│  ├─ String reversal                         │
 │  ├─ String.fromCharCode() abuse             │
-│  ├─ eval() with encoded input               │
-│  └─ String reversal                         │
+│  ├─ Multiple encoding layers                │
+│  ├─ eval/Function/setTimeout with encoded   │
+│  ├─ Broken string concatenation             │
+│  └─ Suspicious encoding density             │
 └─────────────────────────────────────────────┘
 ```
 
@@ -163,19 +220,25 @@ User Action              Server                     Client
 ───────────              ──────                     ──────
 Upload skill
   │
-  ├─ Drag & drop ─────── ▶  api/validate POST
+  ├─ Drag & drop ─────── ▶  api/validate POST       Dropzone parses
+  │                        │                         .md, .zip, .json
+  ├─ GitHub URL ───────── ▶  api/github POST         UrlInput parses URL
+  │                        │  → GitHub API fetch
+  │                        │  → return files[]
   │                        │
-  ├─ GitHub URL ───────── ▶  Fetch SKILL.md
-  │                        │
-  ├─ File picker ──────── ▶  Parse & validate
+  ├─ Paste ────────────── ▶  api/validate POST       textarea → SKILL.md
   │                        │
   │                        ├─ Generate ID (uuid)
-  │                        ├─ Store result (Map)
-  │                        └─ Return JSON ──────── ▶  Render report page
+  │                        ├─ Run 11-axis validation
+  │                        ├─ Store result (Map, max 200)
+  │                        └─ Return ValidationResult ── ▶  Render report page
   │                                                                
   │                                                  ┌──────────┐
   │                                                  │ Score    │
   │                                                  │ Gauge    │
+  │                                                  ├──────────┤
+  │                                                  │ Axes     │
+  │                                                  │ Grid     │
   │                                                  ├──────────┤
   │                                                  │ Findings │
   │                                                  │ Table    │
@@ -183,14 +246,16 @@ Upload skill
   │                                                  │ Compat   │
   │                                                  │ Grid     │
   │                                                  ├──────────┤
+  │                                                  │ Preview  │
+  │                                                  ├──────────┤
   │                                                  │ Export   │
   │                                                  │ Buttons  │
   │                                                  └──────────┘
   │
   │  Export ─────────────────────────────────────── ▶  api/report?format=
-  │                                                    pdf | html | json
+  │                                                    json | html | pdf
   │
-  └─ Save to history (localStorage)
+  └─ Save to history (localStorage key: skillshield_history)
 ```
 
 ---
@@ -199,73 +264,117 @@ Upload skill
 
 ```
 layout.tsx (RootLayout)
-├── Header / Nav
+├── Header / Nav (Home, History, Compare)
 ├── page.tsx (Home)
-│   ├── StatsBar
-│   ├── StepsSection
-│   └── CTASection
+│   ├── Hero (shield icon + tagline)
+│   ├── StatsBar (130K+ skills, 12 categories, 22+ agents)
+│   ├── TabGroup (Upload Files | GitHub URL | Paste SKILL.md)
+│   │   ├── Dropzone          (components/upload/dropzone.tsx)
+│   │   ├── UrlInput          (components/upload/url-input.tsx)
+│   │   └── Textarea + Validate button
+│   └── StepsSection (1. Upload → 2. Scan → 3. Report)
 ├── validate/[id]/page.tsx (Report)
-│   ├── ScoreGauge         (components/report/score-gauge.tsx)
-│   ├── FindingsTable      (components/report/findings-table.tsx)
-│   ├── CompatibilityGrid  (components/report/compatibility-grid.tsx)
-│   │   └── ExportBar      (components/report/export-bar.tsx)
+│   ├── ScoreGauge           (components/report/score-gauge.tsx)
+│   │   SVG arc animated (180°, stroke-dasharray/dashoffset)
+│   ├── AxesGrid             (11 axes, colored progress bars)
+│   ├── FindingsTable        (components/report/findings-table.tsx)
+│   │   Sortable, filterable by severity, expandable rows
+│   ├── CompatibilityGrid    (components/report/compatibility-grid.tsx)
+│   │   Responsive xl:grid-cols-6, status icons, hover tooltips
+│   ├── SkillPreview         (body content in <pre>)
+│   │   └── ExportBar        (components/report/export-bar.tsx)
+│   │       JSON download, HTML download, PDF/Print, Copy Link
 ├── history/page.tsx
-│   └── ValidationHistoryList
-├── compare/page.tsx
-│   ├── SkillInput A
-│   └── SkillInput B
-└── upload/
-    ├── Dropzone           (components/upload/dropzone.tsx)
-    └── URLInput           (components/upload/url-input.tsx)
+│   └── ValidationHistoryList (localStorage, clear button)
+└── compare/page.tsx
+    ├── Panel A (paste or load by ID)
+    ├── Panel B (paste or load by ID)
+    └── Comparison section (score diff, findings diff)
+        (runs runFullValidation client-side)
 ```
+
+---
+
+## API Routes
+
+All API routes implement rate limiting (30 requests/minute per IP).
+
+### `POST /api/validate`
+
+Validate a skill from JSON payload. Rate-limited under key `validate:{ip}`.
+
+**Request body:** `SkillInput`
+```json
+{
+  "name": "my-skill",
+  "files": [
+    { "path": "SKILL.md", "content": "# My Skill\n..." },
+    { "path": "script.sh", "content": "echo hello" }
+  ],
+  "source": { "type": "upload" }
+}
+```
+
+**Response:** `ValidationResult` — includes `overallScore`, `riskLevel`, `findings`, `axes`, `compatibility`, `tokenAnalysis`, `skillPreview`.
+
+### `GET /api/validate?id=<id>`
+
+Retrieve a previously validated result from the in-memory store.
+
+### `GET /api/report?id=<id>&format=json|html|pdf`
+
+Export a validation report. PDF is rendered as HTML with inline print CSS (served with `Content-Type: application/pdf`). Rate-limited under key `report:{ip}`.
+
+### `POST /api/github`
+
+Fetch skill files from a GitHub repository. Rate-limited under key `github:{ip}`.
+
+**Request body:**
+```json
+{ "owner": "user", "repo": "repo-name", "path": "main/skills/my-skill" }
+```
+
+**Behavior:**
+1. Resolves branch (branch detection or directory discovery)
+2. Fetches the git tree recursively via GitHub API
+3. Filters to text files (40+ extensions), max 200 files, 3MB each
+4. Fetches raw content from `raw.githubusercontent.com`
+5. Returns `{ files, owner, repo, branch, truncated }`
 
 ---
 
 ## State Management
 
-| Layer | Strategy | File |
-|-------|----------|------|
-| Server (in-memory) | `Map<string, ValidationResult>` | `lib/store.ts` |
-| Client (persistent) | `localStorage` key `skillshield_history` | `lib/state.ts` |
-
-Validation results are ephemeral on the server (in-memory Map) and persisted
-client-side via localStorage for history and comparison features.
+| Layer | Strategy | File | Limits |
+|-------|----------|------|--------|
+| Server (in-memory) | `Map<string, ValidationResult>` + insertion order array | `lib/store.ts` | Max 200 entries, LRU eviction |
+| Client (persistent) | `localStorage` key `skillshield_history` | `lib/state.ts` | SSR-safe, deduplicates by id |
 
 ---
 
-## API Reference
+## Security Modules (`lib/security/`)
 
-### `POST /api/validate`
+Two server-side security layers protect the API:
 
-Validate a skill from JSON payload.
+### `lib/security/input-validation.ts`
 
-**Request body:**
-```json
-{
-  "name": "my-skill",
-  "content": "# My Skill\n...",
-  "files": { "SKILL.md": "...", "script.sh": "..." }
-}
-```
+| Function | Purpose |
+|----------|---------|
+| `validateOwnerRepo()` | Sanitizes GitHub owner/repo slugs |
+| `validateId()` | Validates UUID format |
+| `validatePayloadSize()` | Checks total request body size (max 15MB) |
+| `validateFiles()` | Validates file array (max 30 files, 3MB each, path traversal prevention, binary detection) |
+| `isBinaryContent()` | Checks for null bytes in first 4096 bytes |
+| `sanitizeError()` | Redacts URLs from error messages |
 
-**Response:**
-```json
-{
-  "id": "uuid",
-  "score": 87,
-  "riskLevel": "low",
-  "findings": [...],
-  "axes": { "security": { "score": 92, ... }, ... }
-}
-```
+### `lib/security/rate-limit.ts`
 
-### `GET /api/validate?id=<id>`
-
-Retrieve a previously validated result.
-
-### `GET /api/report?id=<id>&format=json|html|pdf`
-
-Export a validation report in the requested format.
+| Feature | Detail |
+|---------|--------|
+| Default limit | 60 requests / 60-second window |
+| Per-route limits | 30 req/min for validate, report, and GitHub endpoints |
+| Cleanup | Stale entries purged every 60 seconds |
+| Response | 429 with `Retry-After` header |
 
 ---
 
@@ -273,18 +382,64 @@ Export a validation report in the requested format.
 
 ```
 .github/actions/validate-skill/
-├── action.yml          # Action metadata + input/output schema
-├── index.js            # Node.js 20 entry point
-└── package.json        # Dependencies (minimal)
+├── action.yml          # Action metadata, inputs, outputs
+├── index.js            # Node.js 20 entry point (zero npm deps)
+└── package.json        # Minimal metadata
 ```
 
-The action:
-1. Reads the skill directory from the filesystem
-2. Validates SKILL.md presence and frontmatter
-3. Scans for dangerous patterns (subset of full engine)
-4. Outputs `score`, `risk-level`, and `finding-count`
-5. Optionally generates an HTML report artifact
-6. Fails the pipeline if findings exceed the `fail-on` threshold
+The action performs a **subset** of the full validation engine as a standalone script:
+
+1. Reads the skill directory from the filesystem (via `fs` / `path`)
+2. Validates SKILL.md existence
+3. Parses YAML frontmatter, checks `name` and `description` fields
+4. Scans for 10 dangerous patterns (simplified list):
+   - `rm -rf /` (critical, command-injection)
+   - `curl | sh` (critical, command-injection)
+   - OpenAI API key (critical, secrets)
+   - GitHub token (critical, secrets)
+   - Private key (critical, secrets)
+   - `exec()` (high, command-injection)
+   - `child_process` (high, command-injection)
+   - `eval()` (high, code-execution)
+   - `.env` (medium, sensitive-file-access)
+   - `localhost` (low, network)
+5. Computes score (same formula: start 100, deduct per severity)
+6. Outputs `score`, `risk-level`, `finding-count` as GitHub Actions outputs
+7. Generates GitHub annotations (error/warning) and optional HTML report
+
+---
+
+## 11 Validation Axes (Detailed)
+
+| # | Axis | Key | Weight | Score Range | Status Thresholds | Key Checks |
+|---|------|-----|--------|-------------|-------------------|------------|
+| 1 | Security | `security` | 25% | 0–100 | pass ≥90, warn ≥50 | 100+ patterns, 14 secrets, 10 obfuscation checks |
+| 2 | Frontmatter | `frontmatter` | 18% | 0–100 | pass ≥80, warn ≥50 | Required: `name`, `description`; Recommended: 7 fields |
+| 3 | Quality | `quality` | 12% | 0–100 | pass ≥70, warn ≥40 | Readability, completeness, clarity, examples, accessibility |
+| 4 | Structure | `structure` | 10% | 0–100 | pass =100, warn ≥60 | Depth ≤3, size ≤10MB, binary placement |
+| 5 | Installation | `installation` | 7% | 0–100 | pass =100, warn ≥40 | 17 risk patterns across install scripts/build files |
+| 6 | Naming | `naming` | 5% | 0, 50, or 100 | pass =100, warn =50 | Length 1–64, `^[a-z0-9-]+$`, 30+ reserved names |
+| 7 | Tokens | `tokens` | 5% | 0–100 | pass ≥90, warn ≥50 | ~4 chars/token, 5000 limit, section analysis |
+| 8 | Compatibility | `compatibility` | 5% | 0–100 | pass ≥50, warn ≥20 | 23 agents, 4 statuses |
+| 9 | Content | `content` | 5% | 0 or 100 | pass =100, fail =0 | Non-empty content check |
+| 10 | Dependencies | `dependencies` | 3% | 80 or 100 | Always pass | `require()` / `import` detection |
+| 11 | Best Practices | `bestPractices` | 2% | 70 or 100 | pass or warn | Version + license keyword presence |
+
+**Score formula:** `overallScore = Math.round(Σ(axis.score × weight))`
+
+**Risk level determination:** Scans findings for presence of severity levels in order: `critical` → `high` → `medium` → `low` → `safe` (default).
+
+---
+
+## Scoring Labels
+
+| Score Range | Label |
+|-------------|-------|
+| 90–100 | Excellent |
+| 80–89 | Good |
+| 60–79 | Fair |
+| 40–59 | Poor |
+| 0–39 | Very Poor |
 
 ---
 
@@ -305,9 +460,10 @@ The action:
               └───────────────────────┘
 ```
 
-- **Recommended**: Deploy on Vercel (zero-config for Next.js)
-- **Alternative**: Docker container via `next start`
-- **CI/CD**: GitHub Action runs in any Actions-enabled repository
+* **Recommended**: Deploy on Vercel (zero-config for Next.js 16).
+* **Alternative**: Docker container via `next start`.
+* **CI/CD**: The GitHub Action runs in any Actions-enabled repository without a running server.
+* **State**: No database required — validation results are ephemeral in-memory. User history lives in browser localStorage.
 
 ---
 
@@ -315,9 +471,13 @@ The action:
 
 | Decision | Rationale |
 |----------|-----------|
-| **In-memory store** (no DB) | Ephemeral validation results; persistence delegated to client. Simplifies deployment and keeps the focus on validation logic. |
-| **10 parallel validators** | Each axis runs independently via `Promise.all()`. Easy to add, remove, or rebalance axes by editing one orchestrator file. |
-| **Regex-based scanning** | Chosen over AST parsing for broad coverage across shell scripts, Python, JS, and markdown with minimal dependencies. |
-| **Weighted scoring** | Security gets 30% weight because it's the primary value proposition. Quality and frontmatter follow as secondary concerns. |
-| **localStorage history** | Zero server-side state for user history. The comparison feature reads directly from the client store. |
-| **Standalone GitHub Action** | The action has its own minimal `index.js` rather than invoking the Next.js API, so it works without a running server. |
+| **In-memory store** (no DB) | Ephemeral validation results; persistence delegated to client-side localStorage. Simplifies deployment to zero-config platforms. |
+| **11 parallel validators** | Each axis runs independently via `Promise.all()`. Easy to add, remove, or rebalance axes by editing one orchestrator file and the weights table. |
+| **Regex-based scanning** | Chosen over AST parsing for broad coverage across shell scripts, Python, JS, and markdown with minimal dependencies. ~2000 lines of patterns. |
+| **Weighted scoring with security first** | Security gets 25% weight (highest) because preventing malicious skills is the primary value proposition. Quality and frontmatter follow as secondary. |
+| **Installation risk as separate axis** | Install scripts (npm postinstall, curl|sh, Dockerfiles, system services) are a common attack vector. Dedicated 7% weight with 17 specific patterns. |
+| **Standalone GitHub Action** | The action has its own minimal `index.js` (zero npm dependencies) rather than invoking the Next.js API, so it works without a running server. |
+| **Rate limiting + input validation** | Two security modules (`lib/security/`) protect all API endpoints from abuse: per-IP rate limits (30 req/min), payload size caps (15MB), path traversal prevention, and binary content filtering. |
+| **HTML-labeled-as-PDF** | The PDF export generates HTML with inline print styles and serves it as `application/pdf`. Keeps the dependency footprint small — no puppeteer or wkhtmltopdf required. |
+| **Client-side comparison** | The `/compare` page imports and runs `runFullValidation()` directly in the browser, avoiding server round-trips and enabling offline comparison. |
+| **localStorage history** | Zero server-side state for user history. The comparison feature reads directly from the client store. Deduplicates by validation ID. |
