@@ -46,10 +46,7 @@ export async function POST(request: NextRequest) {
     const treeRes = await fetchWithTimeout(apiUrl)
 
     if (!treeRes.ok) {
-      if (treeRes.status === 404) {
-        return Response.json({ error: 'Skill path not found in repository' }, { status: 404 })
-      }
-      return Response.json({ error: 'Failed to fetch repository' }, { status: 502 })
+      return Response.json({ error: 'Skill path not found in repository' }, { status: 404 })
     }
 
     const data = await treeRes.json()
@@ -79,7 +76,36 @@ async function resolvePath(owner: string, repo: string, path: string): Promise<{
   }
 
   const defaultBranch = await getDefaultBranch(owner, repo)
+
+  const discovered = await findSkillDirectory(owner, repo, defaultBranch, path)
+  if (discovered) {
+    return { branch: defaultBranch, treePath: discovered }
+  }
+
   return { branch: defaultBranch, treePath: path }
+}
+
+async function findSkillDirectory(owner: string, repo: string, branch: string, skillName: string): Promise<string | null> {
+  const rootRes = await fetchWithTimeout(
+    `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
+    { headers: { 'User-Agent': 'skillshield/1.0' } }
+  )
+  if (!rootRes.ok) return null
+
+  const root = await rootRes.json()
+  const items = root.tree || []
+
+  const matches = items.filter((item: any) =>
+    item.type === 'tree' &&
+    (item.path === skillName || item.path.endsWith(`/${skillName}`)) &&
+    items.some((i: any) => i.path === `${item.path}/SKILL.md`)
+  )
+
+  if (matches.length === 0) return null
+
+  matches.sort((a: any, b: any) => a.path.split('/').length - b.path.split('/').length)
+
+  return matches[0].path
 }
 
 async function getDefaultBranch(owner: string, repo: string): Promise<string> {

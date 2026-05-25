@@ -1,17 +1,13 @@
 "use client"
 
-import { use, useSyncExternalStore } from 'react'
+import { use, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getValidation } from '@/lib/state'
 import ScoreGauge from '@/components/report/score-gauge'
 import FindingsTable from '@/components/report/findings-table'
 import CompatibilityGrid from '@/components/report/compatibility-grid'
 import ExportBar from '@/components/report/export-bar'
-
-function subscribeToStorage(onStoreChange: () => void) {
-  window.addEventListener('storage', onStoreChange)
-  return () => window.removeEventListener('storage', onStoreChange)
-}
+import type { ValidationResult } from '@/lib/validator/types'
 
 export default function ReportPage({
   params,
@@ -20,12 +16,18 @@ export default function ReportPage({
 }) {
   const { id } = use(params)
   const router = useRouter()
-  const result = useSyncExternalStore(
-    subscribeToStorage,
-    () => getValidation(id),
-    () => null
-  )
-  const loading = result === null
+  const [result, setResult] = useState<ValidationResult | null | undefined>(undefined)
+
+  useEffect(() => {
+    setResult(getValidation(id))
+    function handleStorage() {
+      setResult(getValidation(id))
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [id])
+
+  const loading = result === undefined
 
   if (loading) {
     return (
