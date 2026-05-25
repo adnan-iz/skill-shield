@@ -1,5 +1,18 @@
 import { parse } from 'yaml'
 
+function stripProto(obj: unknown): unknown {
+  if (Array.isArray(obj)) return obj.map(stripProto)
+  if (obj && typeof obj === 'object') {
+    const clean: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(obj)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue
+      clean[key] = stripProto(val)
+    }
+    return clean
+  }
+  return obj
+}
+
 export interface ParsedSkill {
   frontmatter: Record<string, unknown>
   body: string
@@ -13,8 +26,8 @@ export function parseFrontmatter(content: string): ParsedSkill {
   }
   let frontmatter: Record<string, unknown> = {}
   try {
-    const parsed = parse(match[1].trim())
-    frontmatter = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {}
+    const parsed = parse(match[1].trim(), { schema: 'failsafe' })
+    frontmatter = parsed && typeof parsed === 'object' ? stripProto(parsed) as Record<string, unknown> : {}
   } catch {
     frontmatter = {}
   }
@@ -35,8 +48,8 @@ export function extractFrontmatter(content: string): ExtractResult | null {
   let data: Record<string, unknown> = {}
   let error: string | undefined
   try {
-    const parsed = parse(match[1].trim())
-    data = parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {}
+    const parsed = parse(match[1].trim(), { schema: 'failsafe' })
+    data = parsed && typeof parsed === 'object' ? stripProto(parsed) as Record<string, unknown> : {}
   } catch (e) {
     error = e instanceof Error ? e.message : 'Failed to parse frontmatter'
   }

@@ -1,17 +1,38 @@
 import { NextRequest } from 'next/server'
 import { runFullValidation } from '@/lib/validator/orchestrator'
 import { saveResult } from '@/lib/store'
+import { validateFiles, validatePayloadSize } from '@/lib/security/input-validation'
+import { checkRateLimit } from '@/lib/security/rate-limit'
 import type { SkillInput } from '@/lib/validator/types'
 
-export async function POST(request: NextRequest) {
-  try {
-    const body: SkillInput = await request.json()
+function ipFromRequest(request: NextRequest): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+}
 
-    if (!body.files || body.files.length === 0) {
-      return Response.json(
-        { error: 'Provide at least one file to validate' },
-        { status: 400 }
-      )
+export async function POST(request: NextRequest) {
+  const clientIp = ipFromRequest(request)
+
+  const rl = checkRateLimit(`validate:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
+  if (!rl.allowed) {
+    return Response.json({ error: 'Too many requests. Try again later.' }, {
+      status: 429,
+      headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+    })
+  }
+
+  try {
+    const raw = await request.text()
+
+    const sizeError = validatePayloadSize(raw)
+    if (sizeError) {
+      return Response.json({ error: sizeError }, { status: 413 })
+    }
+
+    const body: SkillInput = JSON.parse(raw)
+
+    const filesError = validateFiles(body.files)
+    if (filesError) {
+      return Response.json({ error: filesError }, { status: 400 })
     }
 
     const result = await runFullValidation(body)
@@ -19,8 +40,10 @@ export async function POST(request: NextRequest) {
 
     return Response.json(result, { status: 200 })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Validation failed'
-    return Response.json({ error: message }, { status: 500 })
+    if (error instanceof SyntaxError) {
+      return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    }
+    return Response.json({ error: 'Validation failed' }, { status: 500 })
   }
 }
 

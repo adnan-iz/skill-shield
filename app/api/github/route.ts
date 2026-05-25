@@ -1,38 +1,89 @@
 import { NextRequest } from 'next/server'
+import { validateOwnerRepo } from '@/lib/security/input-validation'
+import { checkRateLimit } from '@/lib/security/rate-limit'
 
-export async function POST(request: NextRequest) {
+const GITHUB_API_HOST = 'api.github.com'
+const RAW_GITHUB_HOST = 'raw.githubusercontent.com'
+const FETCH_TIMEOUT = 15_000
+
+function ipFromRequest(request: NextRequest): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+}
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = FETCH_TIMEOUT): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    const { owner, repo, path } = await request.json()
-
-    if (!owner || !repo) {
-      return Response.json({ error: 'owner and repo are required' }, { status: 400 })
-    }
-
-    const branch = await resolveBranch(owner, repo, path)
-
-    const treePath = path ? path.split('/').slice(1).join('/') : ''
-    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}${treePath ? ':' + treePath : ''}?recursive=1`
-    const treeRes = await fetch(apiUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
-
-    if (!treeRes.ok) {
-      const msg = treeRes.status === 404
-        ? `Path not found in branch '${branch}'`
-        : `GitHub API error: ${treeRes.status}`
-      return Response.json({ error: msg }, { status: treeRes.status })
-    }
-
-    const data = await treeRes.json()
-    return await fetchFiles(owner, repo, branch, treePath || undefined, data)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch from GitHub'
-    return Response.json({ error: message }, { status: 500 })
+    const res = await fetch(url, { ...options, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(timer)
   }
 }
 
-async function resolveBranch(owner: string, repo: string, path?: string): Promise<string> {
-  if (path) return path.split('/')[0]
+export async function POST(request: NextRequest) {
+  const clientIp = ipFromRequest(request)
 
-  const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+  const rl = checkRateLimit(`github:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
+  if (!rl.allowed) {
+    return Response.json({ error: 'Too many requests. Try again later.' }, {
+      status: 429,
+      headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+    })
+  }
+
+  try {
+    const { owner, repo, path } = await request.json()
+
+    const validationError = validateOwnerRepo(owner, repo)
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 })
+    }
+
+    const { branch, treePath } = await resolvePath(owner, repo, path || '')
+
+    const apiUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/trees/${branch}${treePath ? ':' + treePath : ''}?recursive=1`
+    const treeRes = await fetchWithTimeout(apiUrl)
+
+    if (!treeRes.ok) {
+      if (treeRes.status === 404) {
+        return Response.json({ error: 'Skill path not found in repository' }, { status: 404 })
+      }
+      return Response.json({ error: 'Failed to fetch repository' }, { status: 502 })
+    }
+
+    const data = await treeRes.json()
+    return await fetchFiles(owner, repo, branch, treePath, data)
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return Response.json({ error: 'Request timed out' }, { status: 504 })
+    }
+    return Response.json({ error: 'Failed to fetch from GitHub' }, { status: 500 })
+  }
+}
+
+async function resolvePath(owner: string, repo: string, path: string): Promise<{ branch: string; treePath: string }> {
+  if (!path) {
+    const branch = await getDefaultBranch(owner, repo)
+    return { branch, treePath: '' }
+  }
+
+  const segments = path.split('/')
+  const candidateBranch = segments[0]
+  const rest = segments.slice(1).join('/')
+
+  const testUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${candidateBranch}`
+  const testRes = await fetchWithTimeout(testUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
+  if (testRes.ok) {
+    return { branch: candidateBranch, treePath: rest }
+  }
+
+  const defaultBranch = await getDefaultBranch(owner, repo)
+  return { branch: defaultBranch, treePath: path }
+}
+
+async function getDefaultBranch(owner: string, repo: string): Promise<string> {
+  const repoRes = await fetchWithTimeout(`https://${GITHUB_API_HOST}/repos/${owner}/${repo}`, {
     headers: { 'User-Agent': 'skillshield/1.0' },
   })
   if (repoRes.ok) {
@@ -41,8 +92,8 @@ async function resolveBranch(owner: string, repo: string, path?: string): Promis
   }
 
   for (const candidate of ['main', 'master']) {
-    const headRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${candidate}`,
+    const headRes = await fetchWithTimeout(
+      `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${candidate}`,
       { headers: { 'User-Agent': 'skillshield/1.0' } }
     )
     if (headRes.ok) return candidate
@@ -51,7 +102,7 @@ async function resolveBranch(owner: string, repo: string, path?: string): Promis
   return 'main'
 }
 
-async function fetchFiles(owner: string, repo: string, branch: string, treePath: string | undefined, treeData: any) {
+async function fetchFiles(owner: string, repo: string, branch: string, treePath: string, treeData: any) {
   const blobs = (treeData.tree || []).filter((item: any) => item.type === 'blob')
 
   const textExtensions = new Set([
@@ -70,12 +121,15 @@ async function fetchFiles(owner: string, repo: string, branch: string, treePath:
       const ext = '.' + blob.path.split('.').pop()?.toLowerCase()
       if (!textExtensions.has(ext) && !blob.path.endsWith('SKILL.md')) return null
 
-      const rawRes = await fetch(
-        `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${blob.path}`,
+      const fullPath = treePath ? `${treePath}/${blob.path}` : blob.path
+      const rawRes = await fetchWithTimeout(
+        `https://${RAW_GITHUB_HOST}/${owner}/${repo}/${branch}/${fullPath}`,
         { headers: { 'User-Agent': 'skillshield/1.0' } }
       )
       if (!rawRes.ok) return null
-      return { path: blob.path, content: await rawRes.text() }
+      const text = await rawRes.text()
+      if (text.length > 3 * 1024 * 1024) return null
+      return { path: fullPath, content: text }
     })
   )
 

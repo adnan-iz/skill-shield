@@ -14,15 +14,26 @@ export default function UrlInput({ onParse }: UrlInputProps) {
     setError('')
     const trimmed = input.trim()
 
-    const patterns = [
-      /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/(.+)$/,
-      /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)$/,
-      /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)$/,
-      /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/tree\/(.+)$/,
-      /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/,
+    const githubPatterns = [
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/(.+)$/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)$/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)$/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/tree\/(.+)$/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)\/blob\/(.+)$/,
     ]
 
-    for (const pattern of patterns) {
+    const skillsShPattern = /^https?:\/\/(?:www\.)?skills\.sh\/([^\/]+)\/([^\/]+)\/([^\/]+)$/
+
+    const skillsMatch = trimmed.match(skillsShPattern)
+    if (skillsMatch) {
+      const owner = skillsMatch[1]
+      const repo = skillsMatch[2]
+      const skill = skillsMatch[3]
+      onParse({ owner, repo, path: skill, url: trimmed })
+      return
+    }
+
+    for (const pattern of githubPatterns) {
       const match = trimmed.match(pattern)
       if (match) {
         const owner = match[1]
@@ -33,7 +44,7 @@ export default function UrlInput({ onParse }: UrlInputProps) {
       }
     }
 
-    setError('Invalid GitHub URL. Expected format: https://github.com/owner/repo')
+    setError('Invalid URL. Expected: GitHub URL or skills.sh URL (e.g. https://skills.sh/owner/repo/skill)')
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -53,7 +64,7 @@ export default function UrlInput({ onParse }: UrlInputProps) {
             setError('')
           }}
           onKeyDown={handleKeyDown}
-          placeholder="https://github.com/owner/repo/tree/main/path"
+          placeholder="https://github.com/owner/repo or https://skills.sh/owner/repo/skill"
           className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-700 placeholder-zinc-400 focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
         />
         <button

@@ -1,13 +1,34 @@
 import { NextRequest } from 'next/server'
 import { getResult } from '@/lib/store'
+import { validateId } from '@/lib/security/input-validation'
+import { checkRateLimit } from '@/lib/security/rate-limit'
 import type { ValidationResult } from '@/lib/validator/types'
 
+function ipFromRequest(request: NextRequest): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+}
+
 export async function GET(request: NextRequest) {
+  const clientIp = ipFromRequest(request)
+
+  const rl = checkRateLimit(`report:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
+  if (!rl.allowed) {
+    return Response.json({ error: 'Too many requests. Try again later.' }, {
+      status: 429,
+      headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+    })
+  }
+
   const id = request.nextUrl.searchParams.get('id')
   const format = request.nextUrl.searchParams.get('format') || 'json'
 
   if (!id) {
     return Response.json({ error: 'Missing id' }, { status: 400 })
+  }
+
+  const idError = validateId(id)
+  if (idError) {
+    return Response.json({ error: idError }, { status: 400 })
   }
 
   const result = getResult(id)

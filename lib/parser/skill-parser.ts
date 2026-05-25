@@ -36,11 +36,21 @@ export function parseSkillContent(content: string): ParsedSkill {
   }
 }
 
+function sanitizePath(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  const parts = normalized.split('/').filter(Boolean)
+  const clean = parts.filter(p => p !== '..')
+  if (clean.length !== parts.length) {
+    return clean.join('/')
+  }
+  return normalized
+}
+
 export function buildFileTree(files: { path: string; content: string }[]): FileTreeItem[] {
   const root: FileTreeItem[] = []
 
   for (const file of files) {
-    const normalizedPath = file.path.replace(/\\/g, '/')
+    const normalizedPath = sanitizePath(file.path)
     const parts = normalizedPath.split('/').filter(Boolean)
     const segments: string[] = []
 
