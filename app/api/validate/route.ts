@@ -3,6 +3,7 @@ import { runFullValidation } from '@/lib/validator/orchestrator'
 import { saveResult } from '@/lib/store'
 import { validateFiles, validatePayloadSize } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
+import { badRequest, tooManyRequests, notFound, serverError } from '@/lib/api-error'
 import type { SkillInput } from '@/lib/validator/types'
 
 function ipFromRequest(request: NextRequest): string {
@@ -12,12 +13,9 @@ function ipFromRequest(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   const clientIp = ipFromRequest(request)
 
-  const rl = checkRateLimit(`validate:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
+  const rl = await checkRateLimit(`validate:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
   if (!rl.allowed) {
-    return Response.json({ error: 'Too many requests. Try again later.' }, {
-      status: 429,
-      headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
-    })
+    return tooManyRequests(rl.resetAt)
   }
 
   try {
@@ -25,38 +23,38 @@ export async function POST(request: NextRequest) {
 
     const sizeError = validatePayloadSize(raw)
     if (sizeError) {
-      return Response.json({ error: sizeError }, { status: 413 })
+      return badRequest(sizeError)
     }
 
     const body: SkillInput = JSON.parse(raw)
 
     const filesError = validateFiles(body.files)
     if (filesError) {
-      return Response.json({ error: filesError }, { status: 400 })
+      return badRequest(filesError)
     }
 
     const result = await runFullValidation(body)
-    saveResult(result)
+    await saveResult(result)
 
     return Response.json(result, { status: 200 })
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+      return badRequest('Invalid JSON')
     }
-    return Response.json({ error: 'Validation failed' }, { status: 500 })
+    return serverError()
   }
 }
 
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id')
   if (!id) {
-    return Response.json({ error: 'Missing id parameter' }, { status: 400 })
+    return badRequest('Missing id parameter')
   }
 
   const { getResult } = await import('@/lib/store')
-  const result = getResult(id)
+  const result = await getResult(id)
   if (!result) {
-    return Response.json({ error: 'Result not found' }, { status: 404 })
+    return notFound('Result not found')
   }
 
   return Response.json(result)

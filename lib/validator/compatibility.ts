@@ -79,7 +79,7 @@ export function detectCompatibility(
   const agents: AgentCompatibility[] = SUPPORTED_AGENTS.map(agent => {
     const contentMatches = findPatternMatches(content, agent.detectionPatterns)
     const fileMatches = findPatternMatches(filePaths.join('\n'), agent.detectionPatterns)
-    const totalMatchCount = countPatternMatches(fullText, agent.detectionPatterns)
+    const _totalMatchCount = countPatternMatches(fullText, agent.detectionPatterns)
 
     const status = determineStatus(contentMatches.length, fileMatches.length)
     const notes = buildNotes(contentMatches.length, fileMatches.length, contentMatches, fileMatches)
@@ -114,8 +114,8 @@ export function detectCompatibility(
 
   const fullCount = agents.filter(a => a.status === 'full').length
   const partialCount = agents.filter(a => a.status === 'partial').length
-  const knownCount = fullCount + partialCount
-  const unknownCount = agents.filter(a => a.status === 'unknown').length
+  const _knownCount = fullCount + partialCount
+  const _unknownCount = agents.filter(a => a.status === 'unknown').length
 
   let overallCompatibility: number
   if (fullCount >= 3) {

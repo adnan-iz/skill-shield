@@ -13,22 +13,22 @@ const statusConfig: Record<
 > = {
   full: {
     icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    color: 'text-shield-700 bg-shield-50 border-shield-200',
     label: 'Full compatibility',
   },
   partial: {
     icon: 'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
-    color: 'text-lime-700 bg-lime-50 border-lime-200',
+    color: 'text-threat-low bg-threat-low/10 border-threat-low/20',
     label: 'Partial compatibility',
   },
   unknown: {
     icon: 'M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z',
-    color: 'text-zinc-500 bg-zinc-50 border-zinc-200',
+    color: 'text-on-surface-secondary bg-surface-secondary border-outline',
     label: 'Unknown compatibility',
   },
   incompatible: {
     icon: 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    color: 'text-red-600 bg-red-50 border-red-200',
+    color: 'text-threat-critical bg-threat-critical/10 border-threat-critical/20',
     label: 'Incompatible',
   },
 }
@@ -44,8 +44,12 @@ export default function CompatibilityGrid({ agents }: CompatibilityGridProps) {
         return (
           <div
             key={agent.id}
+            role="listitem"
+            tabIndex={0}
             onMouseEnter={() => setHovered(agent.name)}
             onMouseLeave={() => setHovered(null)}
+            onFocus={() => setHovered(agent.name)}
+            onBlur={() => setHovered(null)}
             className={`relative flex items-center gap-2 rounded-lg border px-3 py-2.5 transition-all ${config.color} ${
               isHovered ? 'shadow-sm scale-[1.02]' : ''
             }`}
@@ -57,7 +61,9 @@ export default function CompatibilityGrid({ agents }: CompatibilityGridProps) {
               stroke="currentColor"
               strokeWidth={1.5}
               className="size-4 flex-shrink-0"
+              aria-label={config.label}
             >
+              <title>{config.label}</title>
               <path strokeLinecap="round" strokeLinejoin="round" d={config.icon} />
             </svg>
             <span className="truncate text-xs font-medium">{agent.name}</span>

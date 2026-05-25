@@ -1,23 +1,24 @@
+import { db } from '@/lib/db'
+import { validationResults } from '@/lib/db/schema'
+import { eq, count } from 'drizzle-orm'
 import type { ValidationResult } from '@/lib/validator/types'
 
-const resultsMap = new Map<string, ValidationResult>()
-const insertionOrder: string[] = []
-const MAX_ENTRIES = 200
-
-export function saveResult(result: ValidationResult): void {
-  if (resultsMap.size >= MAX_ENTRIES) {
-    const oldest = insertionOrder.shift()
-    if (oldest) resultsMap.delete(oldest)
-  }
-
-  resultsMap.set(result.id, result)
-  insertionOrder.push(result.id)
+export async function saveResult(result: ValidationResult): Promise<void> {
+  await db.insert(validationResults).values({
+    id: result.id,
+    result: JSON.stringify(result),
+    createdAt: Date.now(),
+  })
 }
 
-export function getResult(id: string): ValidationResult | undefined {
-  return resultsMap.get(id)
+export async function getResult(id: string): Promise<ValidationResult | undefined> {
+  const row = await db.select().from(validationResults).where(eq(validationResults.id, id)).limit(1)
+  const found = row[0]
+  if (!found) return undefined
+  return JSON.parse(found.result) as ValidationResult
 }
 
-export function getResultCount(): number {
-  return resultsMap.size
+export async function getResultCount(): Promise<number> {
+  const rows = await db.select({ count: count() }).from(validationResults)
+  return rows[0].count
 }

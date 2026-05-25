@@ -5,17 +5,19 @@ import { useRouter } from 'next/navigation'
 import Dropzone from '@/components/upload/dropzone'
 import UrlInput from '@/components/upload/url-input'
 import { saveValidation } from '@/lib/state'
+import { useToast } from '@/components/ui/toast'
 import type { SkillInput } from '@/lib/validator/types'
 
 type Tab = 'upload' | 'url' | 'paste'
 
 export default function HomePage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [tab, setTab] = useState<Tab>('upload')
   const [loading, setLoading] = useState(false)
   const [pasteContent, setPasteContent] = useState('')
 
-  async function validate(input: SkillInput) {
+  const validate = useCallback(async (input: SkillInput) => {
     setLoading(true)
     try {
       const res = await fetch('/api/validate', {
@@ -28,17 +30,17 @@ export default function HomePage() {
       saveValidation(result)
       router.push(`/validate/${result.id}`)
     } catch (err) {
-      alert('Validation failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      toast('Validation failed: ' + (err instanceof Error ? err.message : 'Unknown error'), 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [router, toast])
 
   const handleDropFiles = useCallback(async (files: { name: string; content: string }[]) => {
     const skillFiles = files.map(f => ({ path: f.name, content: f.content }))
     const skillInput: SkillInput = { files: skillFiles }
     await validate(skillInput)
-  }, [])
+  }, [validate])
 
   const handleUrlParse = useCallback(async (data: { owner: string; repo: string; path: string; url: string }) => {
     setLoading(true)
@@ -55,16 +57,16 @@ export default function HomePage() {
       const result = await res.json()
       await validate({ files: result.files, source: { type: 'github', url: data.url } })
     } catch (err) {
-      alert('Failed to fetch from GitHub: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      toast('Failed to fetch from GitHub: ' + (err instanceof Error ? err.message : 'Unknown error'), 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast, validate])
 
   const handlePasteValidate = useCallback(async () => {
     if (!pasteContent.trim()) return
     await validate({ files: [{ path: 'SKILL.md', content: pasteContent }], source: { type: 'paste' } })
-  }, [pasteContent])
+  }, [pasteContent, validate])
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 bg-surface">
@@ -97,7 +99,7 @@ export default function HomePage() {
 
       <section id="upload" className="scroll-mt-20 mb-12">
         <div className="glass-card">
-          <div className="flex border-b border-zinc-200">
+          <div className="flex border-b border-outline">
             {([['upload', 'Upload Files'], ['url', 'GitHub URL'], ['paste', 'Paste SKILL.md']] as [Tab, string][]).map(([key, label]) => (
               <button
                 key={key}
@@ -105,7 +107,7 @@ export default function HomePage() {
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   tab === key
                     ? 'border-b-2 border-shield-500 text-shield-700 bg-shield-50'
-                    : 'text-on-surface-secondary hover:text-on-surface hover:bg-zinc-50'
+                    : 'text-on-surface-secondary hover:text-on-surface hover:bg-surface-secondary'
                 }`}
               >
                 {label}
@@ -125,7 +127,7 @@ export default function HomePage() {
                   onChange={(e) => setPasteContent(e.target.value)}
                   placeholder={`---\nname: my-skill\ndescription: What your skill does and when to use it.\n---\n\n# Your Skill Instructions\n\nStart typing your SKILL.md content here...`}
                   rows={16}
-                  className="w-full rounded-lg border border-zinc-200 bg-white p-4 text-sm font-mono text-zinc-700 placeholder-zinc-400 focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+                  className="w-full rounded-lg border border-outline bg-surface-container p-4 text-sm font-mono text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
                 />
                 <div className="flex justify-end">
                   <button

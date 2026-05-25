@@ -20,25 +20,25 @@ export default function HistoryPage() {
 
   const riskBadgeColor: Record<string, string> = {
     safe: 'bg-shield-100 text-shield-800',
-    low: 'bg-lime-100 text-lime-800',
-    medium: 'bg-yellow-100 text-yellow-800',
-    high: 'bg-orange-100 text-orange-800',
-    critical: 'bg-red-100 text-red-800',
+    low: 'bg-threat-low/10 text-threat-low',
+    medium: 'bg-threat-medium/10 text-threat-medium',
+    high: 'bg-threat-high/10 text-threat-high',
+    critical: 'bg-threat-critical/10 text-threat-critical',
   }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">History</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-2xl font-bold text-on-surface">History</h1>
+          <p className="text-sm text-on-surface-secondary">
             {validations.length} validation{validations.length !== 1 ? 's' : ''} recorded
           </p>
         </div>
         {validations.length > 0 && (
           <button
             onClick={handleClear}
-            className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors"
+            className="rounded-lg border border-error/20 bg-error-container px-4 py-2 text-sm font-semibold text-error hover:bg-error-container/80 transition-colors"
           >
             Clear History
           </button>
@@ -47,11 +47,11 @@ export default function HistoryPage() {
 
       {validations.length === 0 ? (
         <div className="glass-card rounded-2xl p-16 text-center">
-          <span className="material-symbols-outlined mb-3 inline-block text-5xl text-zinc-300">
+          <span className="material-symbols-outlined mb-3 inline-block text-5xl text-on-surface-secondary/40">
             history
           </span>
-          <h2 className="text-lg font-semibold text-zinc-900 mb-1">No history yet</h2>
-          <p className="text-sm text-zinc-500 mb-6">
+          <h2 className="text-lg font-semibold text-on-surface mb-1">No history yet</h2>
+          <p className="text-sm text-on-surface-secondary mb-6">
             Validate your first skill to see results here
           </p>
           <button
@@ -63,12 +63,12 @@ export default function HistoryPage() {
         </div>
       ) : (
         <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="divide-y divide-zinc-100">
+          <div className="divide-y divide-outline">
             {validations.map((v) => (
               <button
                 key={v.id}
                 onClick={() => router.push(`/validate/${v.id}`)}
-                className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-black/[0.02]"
+                className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-secondary"
               >
                 <div className="flex-shrink-0 text-center w-14">
                   <div
@@ -84,11 +84,11 @@ export default function HistoryPage() {
                   >
                     {v.overallScore}
                   </div>
-                  <div className="text-[10px] font-medium uppercase text-zinc-400">Score</div>
+                  <div className="text-[10px] font-medium uppercase text-on-surface-secondary/60">Score</div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-zinc-900 truncate">{v.skillName}</div>
-                  <div className="text-xs text-zinc-500">
+                  <div className="font-semibold text-on-surface truncate">{v.skillName}</div>
+                  <div className="text-xs text-on-surface-secondary">
                     {new Date(v.timestamp).toLocaleString()} &middot; {v.findings.length} finding{v.findings.length !== 1 ? 's' : ''}
                   </div>
                 </div>

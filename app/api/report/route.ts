@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getResult } from '@/lib/store'
 import { validateId } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
+import { badRequest, tooManyRequests, notFound } from '@/lib/api-error'
 import type { ValidationResult } from '@/lib/validator/types'
 
 function ipFromRequest(request: NextRequest): string {
@@ -11,30 +12,27 @@ function ipFromRequest(request: NextRequest): string {
 export async function GET(request: NextRequest) {
   const clientIp = ipFromRequest(request)
 
-  const rl = checkRateLimit(`report:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
+  const rl = await checkRateLimit(`report:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
   if (!rl.allowed) {
-    return Response.json({ error: 'Too many requests. Try again later.' }, {
-      status: 429,
-      headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
-    })
+    return tooManyRequests(rl.resetAt)
   }
 
   const id = request.nextUrl.searchParams.get('id')
   const format = request.nextUrl.searchParams.get('format') || 'json'
 
   if (!id) {
-    return Response.json({ error: 'Missing id' }, { status: 400 })
+    return badRequest('Missing id parameter')
   }
 
   const idError = validateId(id)
   if (idError) {
-    return Response.json({ error: idError }, { status: 400 })
+    return badRequest(idError)
   }
 
-  const result = getResult(id)
+  const result = await getResult(id)
 
   if (!result) {
-    return Response.json({ error: 'Result not found' }, { status: 404 })
+    return notFound('Result not found')
   }
 
   if (format === 'json') {
@@ -58,7 +56,7 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  return Response.json({ error: 'Unsupported format' }, { status: 400 })
+  return badRequest('Unsupported format. Use json, html, or pdf')
 }
 
 function generateHtmlReport(result: ValidationResult): string {

@@ -53,7 +53,7 @@ export function analyzeTokens(
   const total = frontmatterTokens + bodyTokens
 
   const sections = extractSections(body || content)
-  const totalSectionTokens = sections.reduce((sum, s) => sum + estimateTokens(s.content), 0) || 1
+  const _totalSectionTokens = sections.reduce((sum, s) => sum + estimateTokens(s.content), 0) || 1
 
   const breakdown: TokenBreakdownItem[] = sections.map(s => ({
     section: s.heading,

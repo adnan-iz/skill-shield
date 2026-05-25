@@ -1,35 +1,30 @@
-interface RateLimitEntry {
-  count: number
-  resetAt: number
-}
-
-const store = new Map<string, RateLimitEntry>()
-
-const CLEANUP_INTERVAL = 60_000
-let lastCleanup = Date.now()
+import { db } from '@/lib/db'
+import { rateLimits } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 export interface RateLimitOptions {
   maxRequests: number
   windowMs: number
 }
 
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   options: RateLimitOptions = { maxRequests: 60, windowMs: 60_000 }
-): { allowed: boolean; remaining: number; resetAt: number } {
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const now = Date.now()
 
-  if (now - lastCleanup > CLEANUP_INTERVAL) {
-    for (const [k, v] of store) {
-      if (now >= v.resetAt) store.delete(k)
-    }
-    lastCleanup = now
-  }
-
-  const entry = store.get(key)
+  const rows = await db.select().from(rateLimits).where(eq(rateLimits.key, key)).limit(1)
+  const entry = rows[0]
 
   if (!entry || now >= entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + options.windowMs })
+    await db.insert(rateLimits).values({
+      key,
+      count: 1,
+      resetAt: now + options.windowMs,
+    }).onConflictDoUpdate({
+      target: rateLimits.key,
+      set: { count: 1, resetAt: now + options.windowMs },
+    })
     return { allowed: true, remaining: options.maxRequests - 1, resetAt: now + options.windowMs }
   }
 
@@ -37,6 +32,6 @@ export function checkRateLimit(
     return { allowed: false, remaining: 0, resetAt: entry.resetAt }
   }
 
-  entry.count++
-  return { allowed: true, remaining: options.maxRequests - entry.count, resetAt: entry.resetAt }
+  await db.update(rateLimits).set({ count: entry.count + 1 }).where(eq(rateLimits.key, key))
+  return { allowed: true, remaining: options.maxRequests - entry.count - 1, resetAt: entry.resetAt }
 }

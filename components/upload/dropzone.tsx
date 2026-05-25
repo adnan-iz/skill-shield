@@ -86,12 +86,23 @@ export default function Dropzone({ onFiles }: DropzoneProps) {
     inputRef.current?.click()
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleClick()
+    }
+  }
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={handleClick}
+      aria-label="Upload skill files. Drop files here or click to browse."
       className={`cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition-colors ${
         dragging
           ? 'border-shield-500 bg-shield-50'
@@ -105,6 +116,7 @@ export default function Dropzone({ onFiles }: DropzoneProps) {
         accept=".md,.zip,.json,.yaml,.yml,.txt"
         onChange={handleFileSelect}
         className="hidden"
+        aria-label="File input for skill upload"
       />
       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-secondary text-on-surface-secondary">
         <span className="material-symbols-outlined text-2xl">cloud_upload</span>

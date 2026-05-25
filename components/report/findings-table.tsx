@@ -18,11 +18,11 @@ const severityOrder: Record<Severity, number> = {
 }
 
 const severityColors: Record<Severity, string> = {
-  critical: 'bg-red-100 text-red-800 border-red-200',
-  high: 'bg-orange-100 text-orange-800 border-orange-200',
-  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  low: 'bg-lime-100 text-lime-800 border-lime-200',
-  info: 'bg-blue-100 text-blue-800 border-blue-200',
+  critical: 'bg-threat-critical/10 text-threat-critical border-threat-critical/20',
+  high: 'bg-threat-high/10 text-threat-high border-threat-high/20',
+  medium: 'bg-threat-medium/10 text-threat-medium border-threat-medium/20',
+  low: 'bg-threat-low/10 text-threat-low border-threat-low/20',
+  info: 'bg-threat-info/10 text-threat-info border-threat-info/20',
 }
 
 const filterOptions: { label: string; value: Severity | 'all' }[] = [
@@ -95,20 +95,26 @@ export default function FindingsTable({ findings }: FindingsTableProps) {
           <thead>
             <tr className="border-b border-outline text-left text-xs font-semibold uppercase text-on-surface-secondary">
               <th
+                tabIndex={0}
                 className="cursor-pointer px-4 py-3 hover:text-on-surface"
                 onClick={() => toggleSort('severity')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('severity'); } }}
               >
                 Severity{sortArrow('severity')}
               </th>
               <th
+                tabIndex={0}
                 className="cursor-pointer px-4 py-3 hover:text-on-surface"
                 onClick={() => toggleSort('category')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('category'); } }}
               >
                 Category{sortArrow('category')}
               </th>
               <th
+                tabIndex={0}
                 className="cursor-pointer px-4 py-3 hover:text-on-surface"
                 onClick={() => toggleSort('title')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort('title'); } }}
               >
                 Title{sortArrow('title')}
               </th>
@@ -139,6 +145,7 @@ export default function FindingsTable({ findings }: FindingsTableProps) {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setExpandedRow(isExpanded ? null : idx)}
+                      aria-expanded={isExpanded}
                       className="text-left font-medium text-on-surface hover:text-shield-600 transition-colors"
                     >
                       {finding.title}

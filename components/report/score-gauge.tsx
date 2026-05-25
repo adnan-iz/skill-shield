@@ -24,14 +24,7 @@ export default function ScoreGauge({ score, riskLevel }: ScoreGaugeProps) {
       ? 'text-orange-600'
       : 'text-red-600'
 
-  const strokeColor =
-    score >= 70
-      ? '#16a34a'
-      : score >= 50
-      ? '#ca8a04'
-      : score >= 30
-      ? '#ea580c'
-      : '#dc2626'
+  const strokeColorVar = score >= 70 ? 'var(--color-shield-600)' : score >= 50 ? 'var(--color-threat-medium)' : score >= 30 ? 'var(--color-threat-high)' : 'var(--color-threat-critical)'
 
   const radius = 72
   const circumference = 2 * Math.PI * radius
@@ -54,16 +47,16 @@ export default function ScoreGauge({ score, riskLevel }: ScoreGaugeProps) {
             cy="90"
             r={radius}
             fill="none"
-            stroke="#e4e4e7"
             strokeWidth="10"
+            style={{ stroke: 'var(--color-outline)' }}
           />
           <circle
             cx="90"
             cy="90"
             r={radius}
             fill="none"
-            stroke={strokeColor}
             strokeWidth="10"
+            style={{ stroke: strokeColorVar }}
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}

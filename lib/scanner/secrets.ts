@@ -150,7 +150,7 @@ const secrets: SecretRule[] = [
   },
 ]
 
-function getContextLines(content: string, lineNumber: number, radius: number = 1): string {
+function _getContextLines(content: string, lineNumber: number, radius: number = 1): string {
   const lines = content.split('\n')
   const start = Math.max(0, lineNumber - 1 - radius)
   const end = Math.min(lines.length, lineNumber + radius)

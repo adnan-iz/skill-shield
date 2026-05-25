@@ -1,3 +1,4 @@
+/* eslint-disable */
 const fs = require('fs');
 const path = require('path');
 
@@ -73,7 +74,7 @@ function collectFiles(dir, baseDir, files) {
   }
 }
 
-async function validateSkill(files, skillDir) {
+async function validateSkill(files, _skillDir) {
   const content = files.find(f => f.path === 'SKILL.md' || f.path.endsWith('/SKILL.md'))?.content || '';
   const findings = [];
 

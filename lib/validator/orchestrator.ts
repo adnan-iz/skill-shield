@@ -115,7 +115,7 @@ function buildSummary(findings: Finding[], axes: AxisResult[]): ValidationSummar
 function buildCompatibilityAxis(result: CompatibilityMatrix): AxisResult {
   const fullCount = result.agents.filter(a => a.status === 'full').length
   const partialCount = result.agents.filter(a => a.status === 'partial').length
-  const unknownCount = result.agents.filter(a => a.status === 'unknown').length
+  const _unknownCount = result.agents.filter(a => a.status === 'unknown').length
   const totalKnown = fullCount + partialCount
   const ratio = totalKnown / result.agents.length
 

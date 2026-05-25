@@ -1,6 +1,16 @@
 import { NextRequest } from 'next/server'
 import { validateOwnerRepo } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
+import { badRequest, tooManyRequests, notFound, serverError } from '@/lib/api-error'
+
+interface GitHubTreeNode {
+  path: string
+  type: 'tree' | 'blob'
+  sha?: string
+  mode?: string
+  size?: number
+  url?: string
+}
 
 const GITHUB_API_HOST = 'api.github.com'
 const RAW_GITHUB_HOST = 'raw.githubusercontent.com'
@@ -24,12 +34,9 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 export async function POST(request: NextRequest) {
   const clientIp = ipFromRequest(request)
 
-  const rl = checkRateLimit(`github:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
+  const rl = await checkRateLimit(`github:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
   if (!rl.allowed) {
-    return Response.json({ error: 'Too many requests. Try again later.' }, {
-      status: 429,
-      headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
-    })
+    return tooManyRequests(rl.resetAt)
   }
 
   try {
@@ -37,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const validationError = validateOwnerRepo(owner, repo)
     if (validationError) {
-      return Response.json({ error: validationError }, { status: 400 })
+      return badRequest(validationError)
     }
 
     const { branch, treePath } = await resolvePath(owner, repo, path || '')
@@ -46,16 +53,16 @@ export async function POST(request: NextRequest) {
     const treeRes = await fetchWithTimeout(apiUrl)
 
     if (!treeRes.ok) {
-      return Response.json({ error: 'Skill path not found in repository' }, { status: 404 })
+      return notFound('Skill path not found in repository')
     }
 
     const data = await treeRes.json()
     return await fetchFiles(owner, repo, branch, treePath, data)
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      return Response.json({ error: 'Request timed out' }, { status: 504 })
+      return serverError('Request timed out')
     }
-    return Response.json({ error: 'Failed to fetch from GitHub' }, { status: 500 })
+    return serverError()
   }
 }
 
@@ -70,7 +77,6 @@ async function resolvePath(owner: string, repo: string, path: string): Promise<{
   const rest = segments.slice(1).join('/')
 
   if (rest) {
-    // Multi-segment: GitHub URL with branch prefix (e.g. "main/skills/foo")
     const testUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${first}`
     const testRes = await fetchWithTimeout(testUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
     if (testRes.ok) {
@@ -80,8 +86,6 @@ async function resolvePath(owner: string, repo: string, path: string): Promise<{
     return { branch: defaultBranch, treePath: path }
   }
 
-  // Single segment: skills.sh URL style (just skill name, no branch)
-  // Try directory discovery first, fall back to branch
   const defaultBranch = await getDefaultBranch(owner, repo)
 
   const discovered = await findSkillDirectory(owner, repo, defaultBranch, first)
@@ -89,7 +93,6 @@ async function resolvePath(owner: string, repo: string, path: string): Promise<{
     return { branch: defaultBranch, treePath: discovered }
   }
 
-  // No directory found — try as a branch name
   const testUrl = `https://${GITHUB_API_HOST}/repos/${owner}/${repo}/git/refs/heads/${first}`
   const testRes = await fetchWithTimeout(testUrl, { headers: { 'User-Agent': 'skillshield/1.0' } })
   if (testRes.ok) {
@@ -109,15 +112,15 @@ async function findSkillDirectory(owner: string, repo: string, branch: string, s
   const root = await rootRes.json()
   const items = root.tree || []
 
-  const matches = items.filter((item: any) =>
+  const matches = items.filter((item: GitHubTreeNode) =>
     item.type === 'tree' &&
     (item.path === skillName || item.path.endsWith(`/${skillName}`)) &&
-    items.some((i: any) => i.path === `${item.path}/SKILL.md`)
+    items.some((i: GitHubTreeNode) => i.path === `${item.path}/SKILL.md`)
   )
 
   if (matches.length === 0) return null
 
-  matches.sort((a: any, b: any) => a.path.split('/').length - b.path.split('/').length)
+  matches.sort((a: GitHubTreeNode, b: GitHubTreeNode) => a.path.split('/').length - b.path.split('/').length)
 
   return matches[0].path
 }
@@ -142,8 +145,8 @@ async function getDefaultBranch(owner: string, repo: string): Promise<string> {
   return 'main'
 }
 
-async function fetchFiles(owner: string, repo: string, branch: string, treePath: string, treeData: any) {
-  const blobs = (treeData.tree || []).filter((item: any) => item.type === 'blob')
+async function fetchFiles(owner: string, repo: string, branch: string, treePath: string, treeData: { tree: GitHubTreeNode[] }) {
+  const blobs = (treeData.tree || []).filter((item: GitHubTreeNode) => item.type === 'blob')
 
   const textExtensions = new Set([
     '.md', '.json', '.yaml', '.yml', '.txt', '.ts', '.tsx', '.js', '.jsx',
@@ -157,7 +160,7 @@ async function fetchFiles(owner: string, repo: string, branch: string, treePath:
   const relevant = blobs.slice(0, maxFiles)
 
   const results = await Promise.allSettled(
-    relevant.map(async (blob: any) => {
+    relevant.map(async (blob: GitHubTreeNode) => {
       const ext = '.' + blob.path.split('.').pop()?.toLowerCase()
       if (!textExtensions.has(ext) && !blob.path.endsWith('SKILL.md')) return null
 
@@ -174,7 +177,7 @@ async function fetchFiles(owner: string, repo: string, branch: string, treePath:
   )
 
   const files = results
-    .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled' && r.value !== null)
+    .filter((r): r is PromiseFulfilledResult<{ path: string; content: string }> => r.status === 'fulfilled' && r.value !== null)
     .map(r => r.value)
 
   return Response.json({ files, owner, repo, branch, truncated: blobs.length > maxFiles })

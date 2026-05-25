@@ -3,7 +3,7 @@ import { ALL_PATTERNS } from '@/lib/scanner/patterns'
 import { scanForSecrets } from '@/lib/scanner/secrets'
 import { scanObfuscation } from '@/lib/scanner/obfuscation'
 
-export function runSecurityScan(files: SkillFile[], content: string): AxisResult {
+export function runSecurityScan(files: SkillFile[], _content: string): AxisResult {
   const findings: Finding[] = []
 
   for (const file of files) {

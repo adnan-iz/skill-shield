@@ -1944,7 +1944,7 @@ const patterns: PatternDef[] = [
     detect: (content: string, filePath: string) => {
       const dateRe = /\b(?:new\s+Date|Date\.now|getDate|getMonth|getFullYear|getDay|Date\(\))/i
       const envRe = /\b(?:process\.env\.NODE_ENV|process\.env\.(?!NODE_ENV)[A-Z_]{3,})/
-      const targetRe = /\b(?:target|victim|compromise|specific)\b/i
+      const _targetRe = /\b(?:target|victim|compromise|specific)\b/i
       const loc = locate(content, dateRe) || locate(content, envRe)
       if (!loc) return null
       const lines = content.split('\n')

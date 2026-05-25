@@ -55,21 +55,21 @@ export default function ComparePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-zinc-900 mb-1">Compare</h1>
-      <p className="text-sm text-zinc-500 mb-8">
+      <h1 className="text-2xl font-bold text-on-surface mb-1">Compare</h1>
+      <p className="text-sm text-on-surface-secondary mb-8">
         Compare two skills side by side
       </p>
 
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="glass-card p-5">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-sm font-semibold text-zinc-700">Left</span>
+            <span className="text-sm font-semibold text-on-surface">Left</span>
             <button
               onClick={() => setLeftSource('paste')}
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                 leftSource === 'paste'
                   ? 'bg-shield-100 text-shield-700'
-                  : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                  : 'bg-surface-secondary text-on-surface-secondary hover:bg-outline'
               }`}
             >
               Paste Content
@@ -79,7 +79,7 @@ export default function ComparePage() {
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                 leftSource === 'id'
                   ? 'bg-shield-100 text-shield-700'
-                  : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                  : 'bg-surface-secondary text-on-surface-secondary hover:bg-outline'
               }`}
             >
               Load by ID
@@ -91,14 +91,14 @@ export default function ComparePage() {
               onChange={(e) => setLeftInput(e.target.value)}
               placeholder="Paste SKILL.md content here..."
               rows={10}
-              className="w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm font-mono text-zinc-700 placeholder-zinc-400 focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+              className="w-full rounded-lg border border-outline bg-surface-container p-3 text-sm font-mono text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
             />
           ) : (
             <input
               value={leftInput}
               onChange={(e) => setLeftInput(e.target.value)}
               placeholder="Enter validation ID..."
-              className="w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-700 placeholder-zinc-400 focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+              className="w-full rounded-lg border border-outline bg-surface-container p-3 text-sm text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
             />
           )}
           <button
@@ -111,13 +111,13 @@ export default function ComparePage() {
 
         <div className="glass-card p-5">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-sm font-semibold text-zinc-700">Right</span>
+            <span className="text-sm font-semibold text-on-surface">Right</span>
             <button
               onClick={() => setRightSource('paste')}
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                 rightSource === 'paste'
                   ? 'bg-shield-100 text-shield-700'
-                  : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                  : 'bg-surface-secondary text-on-surface-secondary hover:bg-outline'
               }`}
             >
               Paste Content
@@ -127,7 +127,7 @@ export default function ComparePage() {
               className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                 rightSource === 'id'
                   ? 'bg-shield-100 text-shield-700'
-                  : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                  : 'bg-surface-secondary text-on-surface-secondary hover:bg-outline'
               }`}
             >
               Load by ID
@@ -139,14 +139,14 @@ export default function ComparePage() {
               onChange={(e) => setRightInput(e.target.value)}
               placeholder="Paste SKILL.md content here..."
               rows={10}
-              className="w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm font-mono text-zinc-700 placeholder-zinc-400 focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+              className="w-full rounded-lg border border-outline bg-surface-container p-3 text-sm font-mono text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
             />
           ) : (
             <input
               value={rightInput}
               onChange={(e) => setRightInput(e.target.value)}
               placeholder="Enter validation ID..."
-              className="w-full rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-700 placeholder-zinc-400 focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
+              className="w-full rounded-lg border border-outline bg-surface-container p-3 text-sm text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
             />
           )}
           <button
@@ -162,16 +162,16 @@ export default function ComparePage() {
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="glass-card p-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Score diff</div>
-              <div className="text-lg font-bold text-zinc-900">{computeDiff('score', leftResult, rightResult)}</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-on-surface-secondary mb-1">Score diff</div>
+              <div className="text-lg font-bold text-on-surface">{computeDiff('score', leftResult, rightResult)}</div>
             </div>
             <div className="glass-card p-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Findings diff</div>
-              <div className="text-lg font-bold text-zinc-900">{computeDiff('findings', leftResult, rightResult)}</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-on-surface-secondary mb-1">Findings diff</div>
+              <div className="text-lg font-bold text-on-surface">{computeDiff('findings', leftResult, rightResult)}</div>
             </div>
             <div className="glass-card p-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">Risk diff</div>
-              <div className="text-lg font-bold text-zinc-900">{computeDiff('risk', leftResult, rightResult)}</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-on-surface-secondary mb-1">Risk diff</div>
+              <div className="text-lg font-bold text-on-surface">{computeDiff('risk', leftResult, rightResult)}</div>
             </div>
           </div>
 
@@ -179,14 +179,14 @@ export default function ComparePage() {
             <div>
               {leftResult && (
                 <>
-                  <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">Left: {leftResult.skillName}</h3>
+                  <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-on-surface-secondary">Left: {leftResult.skillName}</h3>
                   <ScoreGauge score={leftResult.overallScore} riskLevel={leftResult.riskLevel} />
                   <div className="mt-4">
                     <FindingsTable findings={leftResult.findings} />
                   </div>
-                  <div className="mt-4 rounded-lg border border-zinc-200 p-4">
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Frontmatter</h4>
-                    <pre className="overflow-auto text-xs text-zinc-600">
+                  <div className="mt-4 rounded-lg border border-outline p-4">
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-on-surface-secondary">Frontmatter</h4>
+                    <pre className="overflow-auto text-xs text-on-surface-secondary">
                       {JSON.stringify(leftResult.skillPreview.frontmatter, null, 2)}
                     </pre>
                   </div>
@@ -196,14 +196,14 @@ export default function ComparePage() {
             <div>
               {rightResult && (
                 <>
-                  <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">Right: {rightResult.skillName}</h3>
+                  <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-on-surface-secondary">Right: {rightResult.skillName}</h3>
                   <ScoreGauge score={rightResult.overallScore} riskLevel={rightResult.riskLevel} />
                   <div className="mt-4">
                     <FindingsTable findings={rightResult.findings} />
                   </div>
-                  <div className="mt-4 rounded-lg border border-zinc-200 p-4">
-                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">Frontmatter</h4>
-                    <pre className="overflow-auto text-xs text-zinc-600">
+                  <div className="mt-4 rounded-lg border border-outline p-4">
+                    <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-on-surface-secondary">Frontmatter</h4>
+                    <pre className="overflow-auto text-xs text-on-surface-secondary">
                       {JSON.stringify(rightResult.skillPreview.frontmatter, null, 2)}
                     </pre>
                   </div>
@@ -216,8 +216,8 @@ export default function ComparePage() {
 
       {!leftResult && !rightResult && (
         <div className="glass-card p-16 text-center">
-          <span className="material-symbols-outlined text-4xl text-zinc-300 mb-2 inline-block">compare_arrows</span>
-          <p className="text-sm text-zinc-500">
+          <span className="material-symbols-outlined text-4xl text-on-surface-secondary/40 mb-2 inline-block">compare_arrows</span>
+          <p className="text-sm text-on-surface-secondary">
             Paste SKILL.md content or load by ID on both sides to compare
           </p>
         </div>

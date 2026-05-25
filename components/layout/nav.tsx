@@ -13,7 +13,7 @@ export function SideNavBar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-0 z-50 hidden h-full w-16 flex-col items-center gap-2 border-r border-[#1e293b] bg-stitch-sidebar py-4 md:flex">
+    <aside className="fixed left-0 top-0 z-50 hidden h-full w-16 flex-col items-center gap-2 border-r border-stitch-sidebar-hover bg-stitch-sidebar py-4 md:flex">
       <Link
         href="/"
         className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-shield-500 text-white"
@@ -31,7 +31,7 @@ export function SideNavBar() {
             className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
               isActive
                 ? "bg-shield-500/20 text-shield-400"
-                : "text-zinc-400 hover:bg-stitch-sidebar-hover hover:text-zinc-200"
+                : "text-on-surface-secondary hover:bg-stitch-sidebar-hover hover:text-on-surface"
             }`}
           >
             <span className="material-symbols-outlined text-xl">{item.icon}</span>
@@ -60,14 +60,15 @@ export function TopNavBar() {
           type="search"
           placeholder="Search skills..."
           readOnly
+          aria-label="Search skills"
           className="w-full rounded-lg border border-outline bg-surface py-1.5 pl-9 pr-3 text-sm text-on-surface placeholder-on-surface-secondary outline-none focus:border-shield-500 focus:ring-1 focus:ring-shield-500"
         />
       </div>
       <div className="flex items-center gap-2">
-        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-secondary hover:bg-surface-secondary transition-colors">
+        <button aria-label="Notifications" className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-secondary hover:bg-surface-secondary transition-colors">
           <span className="material-symbols-outlined text-lg">notifications</span>
         </button>
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-shield-500 text-[10px] font-bold text-white">
+        <div aria-label="User menu" className="flex h-7 w-7 items-center justify-center rounded-full bg-shield-500 text-[10px] font-bold text-white">
           AS
         </div>
       </div>

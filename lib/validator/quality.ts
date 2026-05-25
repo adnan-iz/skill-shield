@@ -171,7 +171,7 @@ function assessReadability(content: string, body: string): QualityDimension {
   return { name: 'Readability', key: 'readability', weight: 0.25, score, findings }
 }
 
-function assessCompleteness(content: string, body: string): QualityDimension {
+function assessCompleteness(content: string, _body: string): QualityDimension {
   const findings: Finding[] = []
   let score = 0
   const fullContent = content || ''
@@ -260,7 +260,7 @@ function assessCompleteness(content: string, body: string): QualityDimension {
   return { name: 'Completeness', key: 'completeness', weight: 0.25, score, findings }
 }
 
-function assessClarity(content: string, body: string): QualityDimension {
+function assessClarity(content: string, _body: string): QualityDimension {
   const findings: Finding[] = []
   let score = 0
   const fullContent = content || ''
@@ -340,7 +340,7 @@ function assessClarity(content: string, body: string): QualityDimension {
   return { name: 'Clarity', key: 'clarity', weight: 0.20, score, findings }
 }
 
-function assessExamples(content: string, body: string): QualityDimension {
+function assessExamples(content: string, _body: string): QualityDimension {
   const findings: Finding[] = []
   let score = 0
   const fullContent = content || ''
@@ -410,7 +410,7 @@ function assessExamples(content: string, body: string): QualityDimension {
   return { name: 'Examples', key: 'examples', weight: 0.20, score, findings }
 }
 
-function assessAccessibility(content: string, body: string): QualityDimension {
+function assessAccessibility(content: string, _body: string): QualityDimension {
   const findings: Finding[] = []
   let score = 0
   const fullContent = content || ''

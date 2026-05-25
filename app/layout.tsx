@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SideNavBar, TopNavBar, BottomNavBar } from "@/components/layout/nav";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,6 +31,7 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <head>
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0..200&display=optional"
@@ -38,7 +40,9 @@ export default function RootLayout({
       <body className="min-h-dvh bg-surface text-on-surface">
         <SideNavBar />
         <TopNavBar />
-        <main className="pb-20 md:ml-16 md:pb-0">{children}</main>
+        <main className="pb-20 md:ml-16 md:pb-0">
+          <ToastProvider>{children}</ToastProvider>
+        </main>
         <BottomNavBar />
       </body>
     </html>

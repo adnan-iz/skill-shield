@@ -65,6 +65,7 @@ export default function UrlInput({ onParse }: UrlInputProps) {
           }}
           onKeyDown={handleKeyDown}
           placeholder="https://github.com/owner/repo or https://skills.sh/owner/repo/skill"
+          aria-label="GitHub or skills.sh URL"
           className="flex-1 rounded-lg border border-outline bg-surface-container px-4 py-2.5 text-sm text-on-surface placeholder-on-surface-secondary focus:border-shield-500 focus:outline-none focus:ring-1 focus:ring-shield-500"
         />
         <button
@@ -76,7 +77,7 @@ export default function UrlInput({ onParse }: UrlInputProps) {
         </button>
       </div>
       {error && (
-        <p className="mt-1.5 text-xs text-error">{error}</p>
+        <p role="alert" className="mt-1.5 text-xs text-error">{error}</p>
       )}
     </div>
   )

@@ -88,7 +88,7 @@ export function generateHtmlReport(result: ValidationResult): string {
       </tr>
     `).join('')
 
-  const recHtml = recommendations.map((r, i) =>
+  const recHtml = recommendations.map((r) =>
     `<li>${r}</li>`
   ).join('')
 
