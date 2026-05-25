@@ -1,0 +1,6 @@
+{
+  "name": "skillshield-validate-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for validating agent skills",
+  "private": true
+}

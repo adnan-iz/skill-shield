@@ -1,0 +1,28 @@
+name: 'SkillShield Validate'
+description: 'Validate agent skills for security, quality, and compatibility'
+author: 'SkillShield'
+
+inputs:
+  skill-path:
+    description: 'Path to the skill directory containing SKILL.md'
+    required: true
+  fail-on:
+    description: 'Minimum severity to fail the check (critical, high, medium, low)'
+    required: false
+    default: 'high'
+  output-format:
+    description: 'Report output format (json, html)'
+    required: false
+    default: 'json'
+
+outputs:
+  score:
+    description: 'Overall validation score (0-100)'
+  risk-level:
+    description: 'Risk level (safe, low, medium, high, critical)'
+  finding-count:
+    description: 'Total number of findings'
+
+runs:
+  using: 'node20'
+  main: 'index.js'

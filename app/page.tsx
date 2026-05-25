@@ -1,65 +1,98 @@
-import Image from "next/image";
+import Link from "next/link";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="mx-auto max-w-6xl px-4 py-16">
+      <section className="text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-shield-100 text-shield-600">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="size-10"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <path
+              fillRule="evenodd"
+              d="M12.516 2.17a.75.75 0 00-1.032 0 11.209 11.209 0 01-7.877 3.08.75.75 0 00-.722.515A12.74 12.74 0 002.25 9.75c0 5.942 4.064 10.933 9.563 12.348a.749.749 0 00.374 0c5.499-1.415 9.563-6.406 9.563-12.348 0-1.39-.223-2.73-.635-3.985a.75.75 0 00-.722-.516 11.209 11.209 0 01-7.877-3.08z"
+              clipRule="evenodd"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </svg>
         </div>
-      </main>
+        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
+          SkillShield &mdash; Validate Agent Skills Before You Run Them
+        </h1>
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-zinc-500">
+          Pre-flight validation, security scanning, and professional reports for
+          the open Agent Skills ecosystem.
+        </p>
+      </section>
+
+      <section className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-6 text-center">
+          <div className="text-3xl font-bold text-shield-600">130K+</div>
+          <div className="mt-1 text-sm text-zinc-500">skills analyzed</div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-6 text-center">
+          <div className="text-3xl font-bold text-shield-600">12</div>
+          <div className="mt-1 text-sm text-zinc-500">threat categories</div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-6 text-center">
+          <div className="text-3xl font-bold text-shield-600">22+</div>
+          <div className="mt-1 text-sm text-zinc-500">agents supported</div>
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <div className="rounded-xl border border-zinc-200 p-8">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-shield-100 text-shield-600 font-bold text-lg">
+                1
+              </div>
+              <h3 className="mt-4 font-semibold text-zinc-900">Upload</h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                Drag & drop your SKILL.md, paste a GitHub URL, or upload a ZIP
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-shield-100 text-shield-600 font-bold text-lg">
+                2
+              </div>
+              <h3 className="mt-4 font-semibold text-zinc-900">Scan</h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                Security analysis, compatibility check, and quality report
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-shield-100 text-shield-600 font-bold text-lg">
+                3
+              </div>
+              <h3 className="mt-4 font-semibold text-zinc-900">Report</h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                View score, findings, and export in PDF, JSON, or HTML
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-12 text-center">
+        <Link
+          href="/#upload"
+          className="inline-flex items-center gap-2 rounded-lg bg-shield-600 px-6 py-3 text-sm font-semibold text-white hover:bg-shield-700 transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="size-5"
+          >
+            <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636V13.25z" />
+            <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+          </svg>
+          Validate a Skill
+        </Link>
+      </section>
     </div>
   );
 }
