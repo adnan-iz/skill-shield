@@ -9,7 +9,9 @@ import CompatibilityGrid from '@/components/report/compatibility-grid'
 import ExportBar from '@/components/report/export-bar'
 import DashboardCards from '@/components/report/dashboard-cards'
 import FileTree from '@/components/report/file-tree'
+import { useToast } from '@/components/ui/toast'
 import type { ValidationResult } from '@/lib/validator/types'
+import type { AiReviewResult, FindingExplanation } from '@/lib/ai-review'
 
 export default function ReportPage({
   params,
@@ -29,6 +31,9 @@ export default function ReportPage({
   }, [id])
 
   const [approval, setApproval] = useState<{ id: string; scanId: string; status: string; reviewedBy: string | null; reviewNotes: string | null; createdAt: number; reviewedAt: number | null } | null>(null)
+  const [aiReview, setAiReview] = useState<AiReviewResult | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     fetch(`/api/approvals?scanId=${id}`)
@@ -36,6 +41,28 @@ export default function ReportPage({
       .then(data => setApproval(data.length > 0 ? data[0] : null))
       .catch(() => {})
   }, [id])
+
+  async function runAiReview() {
+    setAiLoading(true)
+    try {
+      const res = await fetch('/api/ai-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ findings: result!.findings, skillName: result!.skillName }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        toast(err.error || 'AI review failed', 'error')
+        return
+      }
+      const data = await res.json()
+      setAiReview(data)
+    } catch {
+      toast('AI review request failed', 'error')
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   const loading = result === undefined
 
@@ -203,6 +230,75 @@ export default function ReportPage({
             )}
           </div>
           <FindingsTable findings={result.findings} />
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <div className="glass-card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-on-surface-secondary">
+              <span className="material-symbols-outlined text-lg">auto_awesome</span>
+              AI-Powered Review
+            </h3>
+            {!aiReview && (
+              <button
+                onClick={runAiReview}
+                disabled={aiLoading}
+                className="rounded-lg bg-secondary px-4 py-1.5 text-xs font-semibold text-white hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+              >
+                {aiLoading ? 'Analyzing...' : 'Run AI Review'}
+              </button>
+            )}
+          </div>
+
+          {aiLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+              <span className="ml-3 text-sm text-on-surface-secondary">AI is analyzing findings...</span>
+            </div>
+          )}
+
+          {aiReview && (
+            <div className="space-y-4">
+              {aiReview.executiveSummary && (
+                <div className="rounded-lg bg-secondary-container p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-secondary mb-1">Executive Summary</div>
+                  <p className="text-sm text-on-surface">{aiReview.executiveSummary}</p>
+                </div>
+              )}
+
+              {aiReview.findingExplanations && aiReview.findingExplanations.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-on-surface-secondary mb-2">Finding Analysis</div>
+                  <div className="space-y-2">
+                    {aiReview.findingExplanations.map((fe: FindingExplanation, i: number) => (
+                      <div key={i} className="rounded-lg border border-outline p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-on-surface">{fe.title}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            fe.riskLevel === 'critical' ? 'bg-red-100 text-red-700' :
+                            fe.riskLevel === 'high' ? 'bg-orange-100 text-orange-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>{fe.riskLevel}</span>
+                        </div>
+                        <p className="text-xs text-on-surface-secondary mb-2">{fe.explanation}</p>
+                        {fe.codeSuggestion && (
+                          <pre className="rounded bg-surface-secondary p-2 text-[11px] overflow-auto">{fe.codeSuggestion}</pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {aiReview.remediationSteps && (
+                <div className="rounded-lg border border-outline p-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-on-surface-secondary mb-2">Remediation Steps</div>
+                  <div className="text-sm text-on-surface whitespace-pre-wrap">{aiReview.remediationSteps}</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

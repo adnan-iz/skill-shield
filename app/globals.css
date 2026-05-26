@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-shield-50: #f0fdf4;
   --color-shield-100: #dcfce7;
@@ -35,6 +37,25 @@
   --color-stitch-sidebar: #0f172a;
   --color-stitch-sidebar-hover: #1e293b;
   --color-stitch-sidebar-active: #22c55e;
+}
+
+.dark {
+  --color-surface: #0f172a;
+  --color-surface-secondary: #1e293b;
+  --color-surface-container: #1e293b;
+  --color-on-surface: #f1f5f9;
+  --color-on-surface-secondary: #94a3b8;
+  --color-outline: #334155;
+  --color-outline-variant: #475569;
+  --color-error-container: #450a0a;
+  --color-secondary-container: #1e1b4b;
+  --color-tertiary-container: #1f0d3d;
+}
+
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(12px);
+  border-color: var(--color-outline);
 }
 
 @layer base {

@@ -2,11 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import ThemeToggle from "@/components/ui/theme-toggle"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: "grid_view" },
   { href: "/compare", label: "Compare", icon: "compare_arrows" },
   { href: "/history", label: "History", icon: "history" },
+  { href: "/rules", label: "Rules", icon: "policy" },
 ]
 
 export function SideNavBar() {
@@ -65,6 +67,7 @@ export function TopNavBar() {
         />
       </div>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <button aria-label="Notifications" className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-secondary hover:bg-surface-secondary transition-colors">
           <span className="material-symbols-outlined text-lg">notifications</span>
         </button>
@@ -108,6 +111,15 @@ export function BottomNavBar() {
       >
         <span className="material-symbols-outlined text-lg">history</span>
         <span className="text-[10px] font-medium">History</span>
+      </Link>
+      <Link
+        href="/rules"
+        className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
+          pathname === "/rules" ? "text-shield-500" : "text-on-surface-secondary"
+        }`}
+      >
+        <span className="material-symbols-outlined text-lg">policy</span>
+        <span className="text-[10px] font-medium">Rules</span>
       </Link>
       {isReport && (
         <div className="flex flex-col items-center gap-0.5 px-3 py-1 text-shield-500">

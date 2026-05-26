@@ -2,6 +2,7 @@ import { AxisResult, Finding, SkillFile } from '@/lib/validator/types'
 import { ALL_PATTERNS } from '@/lib/scanner/patterns'
 import { scanForSecrets } from '@/lib/scanner/secrets'
 import { scanObfuscation } from '@/lib/scanner/obfuscation'
+import { runSemgrepScan } from '@/lib/semgrep'
 import { extractPermissionManifest, detectPermissionViolations } from '@/lib/permissions'
 
 let findingCounter = 0
@@ -22,6 +23,9 @@ export function runSecurityScan(files: SkillFile[], _content: string): AxisResul
 
     const obfuscationFindings = scanObfuscation(file.content, file.path)
     findings.push(...obfuscationFindings)
+
+    const semgrepFindings = runSemgrepScan(file.content, file.path)
+    findings.push(...semgrepFindings)
   }
 
   const manifest = extractPermissionManifest(_content)

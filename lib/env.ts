@@ -6,6 +6,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url().or(z.string().startsWith('file:')).optional().default('file:./data/skillshield.db'),
   PORT: z.coerce.number().optional().default(3000),
   HOSTNAME: z.string().optional().default('0.0.0.0'),
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  GOOGLE_AI_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
