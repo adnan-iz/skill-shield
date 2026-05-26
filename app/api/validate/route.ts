@@ -3,6 +3,7 @@ import { runFullValidation } from '@/lib/validator/orchestrator'
 import { saveResult } from '@/lib/store'
 import { validateFiles, validatePayloadSize } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
+import { addRateLimitHeaders } from '@/lib/security/rate-limit-headers'
 import { badRequest, tooManyRequests, notFound, serverError } from '@/lib/api-error'
 import { triggerWebhooks, logAuditEvent } from '@/lib/webhooks'
 import type { SkillInput } from '@/lib/validator/types'
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   const rl = await checkRateLimit(`validate:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
   if (!rl.allowed) {
-    return tooManyRequests(rl.resetAt)
+    return addRateLimitHeaders(tooManyRequests(rl.resetAt), rl)
   }
 
   try {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
       // Webhook/audit failures must not break the scan response
     }
 
-    return Response.json(result, { status: 200 })
+    return addRateLimitHeaders(Response.json(result, { status: 200 }), rl)
   } catch (error) {
     if (error instanceof SyntaxError) {
       return badRequest('Invalid JSON')

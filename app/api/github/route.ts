@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { validateOwnerRepo, validateBranch, validateCommitSha } from '@/lib/security/input-validation'
 import { checkRateLimit } from '@/lib/security/rate-limit'
+import { addRateLimitHeaders } from '@/lib/security/rate-limit-headers'
 import { badRequest, tooManyRequests, notFound, serverError } from '@/lib/api-error'
 
 interface GitHubTreeNode {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const rl = await checkRateLimit(`github:${clientIp}`, { maxRequests: 30, windowMs: 60_000 })
   if (!rl.allowed) {
-    return tooManyRequests(rl.resetAt)
+    return addRateLimitHeaders(tooManyRequests(rl.resetAt), rl)
   }
 
   try {
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await treeRes.json()
-    return await fetchFiles(owner, repo, resolvedBranch, treePath, data, { sha, includeExtensions, excludeExtensions, ignorePaths })
+    return addRateLimitHeaders(await fetchFiles(owner, repo, resolvedBranch, treePath, data, { sha, includeExtensions, excludeExtensions, ignorePaths }), rl)
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return serverError('Request timed out')

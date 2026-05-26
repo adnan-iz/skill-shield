@@ -9,6 +9,7 @@ const navItems = [
   { href: "/compare", label: "Compare", icon: "compare_arrows" },
   { href: "/history", label: "History", icon: "history" },
   { href: "/rules", label: "Rules", icon: "policy" },
+  { href: "/api/docs", label: "API", icon: "api", external: true },
 ]
 
 export function SideNavBar() {
@@ -25,16 +26,28 @@ export function SideNavBar() {
       {navItems.map((item) => {
         const isActive =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
-        return (
+        const classes = `flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+          isActive
+            ? "bg-shield-500/20 text-shield-400"
+            : "text-on-surface-secondary hover:bg-stitch-sidebar-hover hover:text-on-surface"
+        }`
+        return item.external ? (
+          <a
+            key={item.href}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={item.label}
+            className={classes}
+          >
+            <span className="material-symbols-outlined text-xl">{item.icon}</span>
+          </a>
+        ) : (
           <Link
             key={item.href}
             href={item.href}
             title={item.label}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
-              isActive
-                ? "bg-shield-500/20 text-shield-400"
-                : "text-on-surface-secondary hover:bg-stitch-sidebar-hover hover:text-on-surface"
-            }`}
+            className={classes}
           >
             <span className="material-symbols-outlined text-xl">{item.icon}</span>
           </Link>
@@ -121,6 +134,15 @@ export function BottomNavBar() {
         <span className="material-symbols-outlined text-lg">policy</span>
         <span className="text-[10px] font-medium">Rules</span>
       </Link>
+      <a
+        href="/api/docs"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-col items-center gap-0.5 px-3 py-1 text-on-surface-secondary"
+      >
+        <span className="material-symbols-outlined text-lg">api</span>
+        <span className="text-[10px] font-medium">API</span>
+      </a>
       {isReport && (
         <div className="flex flex-col items-center gap-0.5 px-3 py-1 text-shield-500">
           <span className="material-symbols-outlined text-lg">description</span>
