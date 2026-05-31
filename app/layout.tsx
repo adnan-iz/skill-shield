@@ -16,9 +16,28 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SkillShield — Validate Agent Skills Before You Run Them",
+  title: {
+    default: "SkillShield — Validate Agent Skills Before You Run Them",
+    template: "%s — SkillShield",
+  },
   description:
     "Pre-flight validation, security scanning, and professional reports for the open Agent Skills ecosystem.",
+  keywords: [
+    "AI security",
+    "agent skills",
+    "skill validation",
+    "MCP security",
+    "Claude skills",
+    "AI agent security",
+    "DevSecOps",
+  ],
+  authors: [{ name: "SkillShield" }],
+  openGraph: {
+    title: "SkillShield — Validate Agent Skills Before You Run Them",
+    description:
+      "Pre-flight validation, security scanning, and professional reports for AI agent skills.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

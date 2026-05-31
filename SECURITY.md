@@ -24,14 +24,15 @@ Only the latest stable release receives security patches.
 
 ## Data Handling
 
-- Scan results are stored in-memory by default and never persisted unless explicitly configured.
-- When persistent storage is enabled (Phase 5), data is encrypted at rest.
+- Scan results are stored persistently by default in SQLite via Drizzle ORM.
+- Data is encrypted at rest when encryption is explicitly configured.
 - API keys and tokens are masked in all logs and error messages.
 - User-uploaded files are analyzed in a sandboxed environment and deleted after scan completion.
+- Default data retention is 30 days; configurable via environment variables.
 
 ## Rate Limiting
 
-- Public API endpoints are rate-limited to **100 requests per minute** per IP.
+- Public API endpoints are rate-limited to **30 requests per minute** per IP.
 - Authenticated users receive **1000 requests per minute** per token.
 - File uploads are limited to **50 MB per file** and **10 files per scan**.
 - Rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) are returned on all API responses.

@@ -226,6 +226,52 @@ export async function GET() {
           responses: { '200': { description: 'Service health status' } },
         },
       },
+      '/api/compare': {
+        post: {
+          summary: 'Compare two scan results',
+          description: 'Side-by-side comparison of two validation results with diff analysis',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['scanAId', 'scanBId'],
+                  properties: {
+                    scanAId: { type: 'string', description: 'ID of the first scan' },
+                    scanBId: { type: 'string', description: 'ID of the second scan' },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            '200': { description: 'Comparison result with score diff, shared/unique findings, and axes diff' },
+            '400': { description: 'Missing scan IDs' },
+            '404': { description: 'One or both scans not found' },
+            '429': { description: 'Rate limit exceeded' },
+          },
+        },
+      },
+      '/api/rules': {
+        get: {
+          summary: 'Get all built-in scanner rules',
+          description: 'Returns threat patterns, secret rules, obfuscation checks, and Semgrep rules',
+          responses: {
+            '200': { description: 'Complete rule catalog' },
+            '429': { description: 'Rate limit exceeded' },
+          },
+        },
+      },
+      '/api/docs': {
+        get: {
+          summary: 'OpenAPI specification',
+          description: 'This document — the full OpenAPI 3.0 spec for the SkillShield API',
+          responses: {
+            '200': { description: 'OpenAPI JSON specification' },
+          },
+        },
+      },
     },
   }
 

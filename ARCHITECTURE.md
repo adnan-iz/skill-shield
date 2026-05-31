@@ -230,8 +230,8 @@ Upload skill
   │                        │
   │                        ├─ Generate ID (uuid)
   │                        ├─ Run 11-axis validation
-  │                        ├─ Store result (Map, max 200)
-  │                        └─ Return ValidationResult ── ▶  Render report page
+   │                        ├─ Store result in SQLite (validation_results table)
+   │                        └─ Return ValidationResult ── ▶  Render report page
   │                                                                
   │                                                  ┌──────────┐
   │                                                  │ Score    │
@@ -319,7 +319,7 @@ Validate a skill from JSON payload. Rate-limited under key `validate:{ip}`.
 
 ### `GET /api/validate?id=<id>`
 
-Retrieve a previously validated result from the in-memory store.
+Retrieve a previously validated result from the SQLite database.
 
 ### `GET /api/report?id=<id>&format=json|html|pdf`
 
@@ -347,7 +347,7 @@ Fetch skill files from a GitHub repository. Rate-limited under key `github:{ip}`
 
 | Layer | Strategy | File | Limits |
 |-------|----------|------|--------|
-| Server (in-memory) | `Map<string, ValidationResult>` + insertion order array | `lib/store.ts` | Max 200 entries, LRU eviction |
+| Server (persistent) | SQLite via Drizzle ORM (`lib/db/`) | `lib/db/schema.ts` | 5 tables: validation_results, rate_limits, audit_logs, approvals, webhooks |
 | Client (persistent) | `localStorage` key `skillshield_history` | `lib/state.ts` | SSR-safe, deduplicates by id |
 
 ---
@@ -463,7 +463,7 @@ The action performs a **subset** of the full validation engine as a standalone s
 * **Recommended**: Deploy on Vercel (zero-config for Next.js 16).
 * **Alternative**: Docker container via `next start`.
 * **CI/CD**: The GitHub Action runs in any Actions-enabled repository without a running server.
-* **State**: No database required — validation results are ephemeral in-memory. User history lives in browser localStorage.
+* **State**: SQLite database (via Drizzle ORM) persists validation results, rate limits, audit logs, approvals, and webhooks. Client-side history is still mirrored in localStorage.
 
 ---
 
@@ -471,7 +471,7 @@ The action performs a **subset** of the full validation engine as a standalone s
 
 | Decision | Rationale |
 |----------|-----------|
-| **In-memory store** (no DB) | Ephemeral validation results; persistence delegated to client-side localStorage. Simplifies deployment to zero-config platforms. |
+| **SQLite with Drizzle ORM** | Persistent storage for validation results, rate limits, audit logs, approvals, and webhooks. Enables advanced features like history, approvals, and audit trails without external database setup. |
 | **11 parallel validators** | Each axis runs independently via `Promise.all()`. Easy to add, remove, or rebalance axes by editing one orchestrator file and the weights table. |
 | **Regex-based scanning** | Chosen over AST parsing for broad coverage across shell scripts, Python, JS, and markdown with minimal dependencies. ~2000 lines of patterns. |
 | **Weighted scoring with security first** | Security gets 25% weight (highest) because preventing malicious skills is the primary value proposition. Quality and frontmatter follow as secondary. |
@@ -481,3 +481,238 @@ The action performs a **subset** of the full validation engine as a standalone s
 | **HTML-labeled-as-PDF** | The PDF export generates HTML with inline print styles and serves it as `application/pdf`. Keeps the dependency footprint small — no puppeteer or wkhtmltopdf required. |
 | **Client-side comparison** | The `/compare` page imports and runs `runFullValidation()` directly in the browser, avoiding server round-trips and enabling offline comparison. |
 | **localStorage history** | Zero server-side state for user history. The comparison feature reads directly from the client store. Deduplicates by validation ID. |
+
+---
+
+## Recent Additions
+
+### `packages/core` Monorepo Structure
+
+The codebase is organized as a monorepo with two packages under `packages/`:
+
+```
+packages/
+├── core/           # @skillshield/core — shared scanner & validator engine
+│   ├── src/
+│   │   ├── scanner/       # patterns.ts, secrets.ts, obfuscation.ts
+│   │   ├── validator/     # types.ts, scoring.ts
+│   │   ├── parser/        # frontmatter.ts
+│   │   └── index.ts       # re-exports
+│   ├── package.json
+│   └── tsconfig.json
+└── cli/            # skillshield-cli — standalone CLI tool
+    ├── src/
+    │   └── index.ts       # commander-based CLI (scan, format, fail-on)
+    ├── package.json       # dependencies: commander, chalk
+    └── tsconfig.json
+```
+
+- **`@skillshield/core`** exports the scanner (patterns, secrets, obfuscation), validator types, scoring logic, and frontmatter parser. Used by both the Next.js API routes and the CLI.
+- **`skillshield-cli`** is a standalone Node.js CLI using `commander` for command parsing and `chalk` for colored output. Supports `scan` with `--format` (json, html, sarif, markdown), `--fail-on`, `--output`, and `--policy` options.
+
+### Policy Engine (`lib/policy/`)
+
+Located at `lib/policy/`:
+
+```
+lib/policy/
+├── engine.ts       # evaluatePolicy() — applies policy config against findings
+├── parser.ts       # parsePolicy(), loadPolicy() — YAML parsing & validation
+├── types.ts        # PolicyConfig, SeverityOverride, PolicyMode types
+└── index.ts        # public exports
+```
+
+**Policy modes:**
+
+| Mode | `failOn` | Secrets Blocked | Destructive Commands | Permission Manifest Required | Blocked Commands |
+|------|----------|-----------------|----------------------|------------------------------|------------------|
+| `default` | high | ✓ | ✓ | ✗ | — |
+| `strict` | medium | ✓ | ✓ | ✓ | curl, wget, sudo, chmod, chown, rm -rf, eval |
+| `enterprise` | low | ✓ | ✓ | ✓ | + ssh, telnet, nc, nmap |
+| `custom` | per config | per config | per config | per config | per config |
+
+**Key features:**
+- Severity overrides by `ruleId` or `category`
+- Domain allowlisting (`allowExternalDomains`)
+- Command blocking (`blockedCommands`)
+- File extension filtering (`allowedFileExtensions`)
+- Finding blocking by title/ruleId (`blockedFindings`)
+- Score penalty (5 points per violation)
+- Detection of destructive commands (rm -rf, chmod 777, dd, mkfs, fdisk, format)
+
+### Permission Manifest System (`lib/permissions/`)
+
+Located at `lib/permissions/`:
+
+```
+lib/permissions/
+├── manifest.ts     # extractPermissionManifest(), detectPermissionViolations(), extractDeclaredPermissions()
+└── index.ts        # public exports
+```
+
+Extracts a permission manifest from `SKILL.md` content in three formats:
+1. A dedicated `---permissions`/`---` block
+2. Inline in YAML frontmatter under a `permissions` key
+3. A standalone YAML block starting with `name:` + `permissions:`
+
+**Permission domains:**
+
+| Domain | Sub-keys | Detection |
+|--------|----------|-----------|
+| `filesystem` | `read`, `write` | Path references in content |
+| `network` | `allow` | URL/domain extraction |
+| `shell` | `allow`, `deny` | Dangerous command patterns (rm -rf, curl, wget, bash, chmod, chown, mkfs, dd, fork bombs) |
+| `environment` | `allow`, `deny` | `process.env.*`, `${VAR}`, `env.VAR` references |
+
+Violations are reported when detected usage exceeds declared permissions.
+
+### Semgrep-Compatible Rules Engine (`lib/semgrep/`)
+
+Located at `lib/semgrep/`:
+
+```
+lib/semgrep/
+├── index.ts             # SemgrepRule type, parseSemgrepRules(), matchRule(), runSemgrepScan()
+└── builtin-rules.ts     # 15 built-in security rules
+```
+
+**15 built-in rules (SS-prefixed IDs):**
+
+| ID | Severity | Description |
+|----|----------|-------------|
+| SS-SHELL-001 | CRITICAL | `rm -rf /` |
+| SS-SHELL-002 | CRITICAL | `curl \| sh` |
+| SS-SHELL-003 | CRITICAL | `wget \| sh` |
+| SS-SECRET-001 | CRITICAL | OpenAI API key |
+| SS-SECRET-002 | CRITICAL | GitHub token |
+| SS-SECRET-003 | CRITICAL | Private key |
+| SS-FS-001 | ERROR | `fs.rmSync` recursive delete |
+| SS-FS-002 | ERROR | `chmod 777` |
+| SS-NET-001 | WARNING | External network request |
+| SS-OBF-001 | ERROR | `eval` with encoded input |
+| SS-OBF-002 | WARNING | `String.fromCharCode` obfuscation |
+| SS-EXEC-001 | ERROR | `child_process.exec` |
+| SS-EXEC-002 | ERROR | Python `subprocess` with `shell=True` |
+| SS-ENV-001 | WARNING | Sensitive env access |
+| SS-CODE-001 | ERROR | `eval()` |
+
+**Features:**
+- Supports `pattern`, `patternRegex`, `patternEither`, and `patternNot` fields
+- File path include/exclude filters
+- Matches any rule subset — custom rules can be loaded via `runSemgrepScan(content, path, rules)`
+- Rules are exposed via `GET /api/semgrep-rules?format=json|yaml`
+
+### Webhook System (`lib/webhooks/`)
+
+Located at `lib/webhooks/index.ts`.
+
+**Functions:**
+- `triggerWebhooks(event, scanId, data)` — dispatches payload to all matching hooks
+- `registerWebhook(url, events, secret)` — inserts a webhook into the database
+- `listWebhooks()` — returns all registered hooks
+- `deleteWebhook(id)` — removes a webhook
+
+**Database table** (`lib/db/schema.ts`):
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | text PK | UUID |
+| `url` | text | Target URL |
+| `events` | text | JSON array of event strings |
+| `secret` | text? | Optional signing secret |
+| `enabled` | boolean | Whether the hook is active |
+| `createdAt` | integer | Unix timestamp |
+| `lastTriggeredAt` | integer? | Last execution time |
+| `lastStatusCode` | integer? | Last HTTP status code |
+
+**Flow:**
+1. Validation completes in `POST /api/validate`
+2. If score < 70, a pending approval is created
+3. `logAuditEvent('scan.completed', ...)` is called
+4. `triggerWebhooks('scan.completed', ...)` sends payloads to all enabled hooks
+5. Each webhook gets a 10-second timeout; failures are logged but don't break the response
+
+### Approval Workflow (`lib/approvals/`)
+
+Located at `lib/approvals/index.ts`.
+
+**Functions:**
+- `getApprovalForScan(scanId)` — fetch approval by scan ID
+- `approveScan(scanId, reviewer?, notes?)` — mark as approved
+- `rejectScan(scanId, reviewer?, notes?)` — mark as rejected
+- `listApprovals(status?, limit?)` — list with optional filters
+- `getPendingApprovalCount()` — count of pending approvals
+- `createPendingApproval(scanId)` — auto-created for scans with score < 70
+
+**Database table** (`lib/db/schema.ts`):
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | text PK | UUID |
+| `scanId` | text | Associated validation ID |
+| `status` | enum | `pending` | `approved` | `rejected` |
+| `reviewedBy` | text? | Reviewer name/identifier |
+| `reviewNotes` | text? | Optional notes |
+| `createdAt` | integer | Unix timestamp |
+| `reviewedAt` | integer? | Unix timestamp of review |
+
+### AI Review Module (`lib/ai-review/`)
+
+Located at `lib/ai-review/index.ts`.
+
+**Supported providers:** OpenAI, Anthropic, Google, OpenRouter.
+
+**Configuration:** `AiReviewConfig` with `provider`, `apiKey`, `model?`, `redactSecrets`.
+
+**Flow:**
+1. `POST /api/ai-review` receives findings and skill name
+2. Secrets are optionally redacted from snippets before sending
+3. A structured prompt is built asking for executive summary, per-finding explanations, risk explanation, and remediation steps
+4. The AI API is called (OpenAI `/chat/completions` or Anthropic `/v1/messages`)
+5. Response is parsed from JSON or fallback markdown extraction
+6. Returns `AiReviewResult` with `summary`, `riskExplanation`, `findingExplanations[]`, `remediationSteps`, `executiveSummary?`
+
+**Fallback parsing:** If the AI response is not valid JSON, regex-based section extraction is used to parse markdown-formatted responses.
+
+### Dark Mode Support
+
+The application supports dark mode through Tailwind CSS v4's `dark:` variant and CSS custom properties defined in `app/globals.css`. Theme toggling is implemented with a `class` strategy (`.dark` class on `<html>`), persisted to localStorage. All UI components (`/components/`) include dark mode variants.
+
+### New API Routes
+
+In addition to the original four endpoints, the API now includes these routes:
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/policy` | POST | Evaluate findings against a `PolicyConfig` |
+| `/api/approvals` | GET | List approvals (filter by scanId, status, limit) |
+| `/api/approvals` | POST | Approve or reject a scan (action: `approve`/`reject`) |
+| `/api/ai-review` | POST | Run AI-powered review of findings |
+| `/api/webhooks` | GET | List registered webhooks |
+| `/api/webhooks` | POST | Register a new webhook |
+| `/api/webhooks` | DELETE | Delete a webhook by id |
+| `/api/semgrep-rules` | GET | List built-in semgrep rules (json or yaml) |
+| `/api/audit` | GET | Query audit logs (by event, with limit) |
+| `/api/health` | GET | System health check (DB status, version, uptime, webhook count) |
+| `/api/docs` | GET | OpenAPI 3.0 specification document |
+
+All routes apply rate limiting with the same `checkRateLimit` middleware and return `X-RateLimit-*` headers.
+
+### Database Schema (`lib/db/`)
+
+The project now uses SQLite via `@libsql/client` with Drizzle ORM:
+
+```
+lib/db/
+├── index.ts       # Database connection
+└── schema.ts      # 5 tables: validation_results, rate_limits, audit_logs, approvals, webhooks
+```
+
+| Table | Purpose |
+|-------|---------|
+| `validation_results` | Persistent storage of validation results with TTL |
+| `rate_limits` | Per-key rate limit tracking (count + reset timestamp) |
+| `audit_logs` | Event-based audit trail |
+| `approvals` | Approval workflow state |
+| `webhooks` | Webhook registration and status |
+

@@ -35,7 +35,7 @@ interface SecretRule {
   recommendation: string
 }
 
-const secrets: SecretRule[] = [
+export const secrets: SecretRule[] = [
   {
     type: 'openai-key',
     pattern: /(?:sk-[a-zA-Z0-9]{20,}|sk-[a-zA-Z0-9]{20,}T3BlbkFJ[a-zA-Z0-9]{20,})/g,

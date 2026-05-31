@@ -11,12 +11,12 @@
 1. Clone the repository.
 2. Install dependencies:
    ```sh
-   pnpm install
+   npm install
    ```
 3. Copy `.env.example` to `.env.local` and fill in required values.
 4. Start the dev server:
    ```sh
-   pnpm dev
+   npm run dev
    ```
 
 ## Pull Request Process
@@ -25,9 +25,9 @@
 2. Write or update tests for your changes.
 3. Ensure all checks pass locally:
    ```sh
-   pnpm typecheck
-   pnpm lint
-   pnpm test
+   npm run typecheck
+   npm run lint
+   npm run test
    ```
 4. Keep PRs focused — one feature or fix per PR.
 5. Title must follow [Conventional Commits](https://www.conventionalcommits.org/) (e.g., `feat:`, `fix:`, `chore:`).
@@ -46,7 +46,7 @@
 - Integration tests are required for API endpoints and CLI commands.
 - Run the full suite before pushing:
   ```sh
-  pnpm test
-  pnpm test:e2e   # if applicable
+  npm run test
+  npm run test:watch   # if applicable
   ```
 - Minimum coverage threshold: 80% (branches and lines).

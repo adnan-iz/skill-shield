@@ -315,3 +315,19 @@ export function scanObfuscation(content: string, filePath: string): Finding[] {
 
   return findings
 }
+
+export const OBFUSCATION_CHECKS = [
+  { check: 'Hex-encoded strings', description: 'Strings using hex escape sequences to hide content' },
+  { check: 'Base64 encoded strings', description: 'Long base64 strings that may hide content' },
+  { check: 'Hidden Unicode characters', description: 'Zero-width and invisible Unicode characters detected' },
+  { check: 'Homoglyph characters', description: 'Visually similar Unicode characters (homoglyphs) that resemble Latin letters' },
+  { check: 'String reversal obfuscation', description: 'Using string reversal to obfuscate commands' },
+  { check: 'String.fromCharCode obfuscation', description: 'Building strings from character codes and executing them' },
+  { check: 'Multiple encoding layers', description: 'Content with multiple layers of encoding' },
+  { check: 'eval with encoded input', description: 'eval() called with encoded or obscured arguments' },
+  { check: 'setTimeout with encoded input', description: 'setTimeout with encoded string arguments' },
+  { check: 'setInterval with encoded input', description: 'setInterval with encoded string arguments' },
+  { check: 'Function constructor with encoded input', description: 'Function constructor with encoded arguments' },
+  { check: 'Broken string concatenation', description: 'Suspicious string splitting and joining to hide intent' },
+  { check: 'Suspicious encoding density', description: 'High density of encoding functions/escapes found' },
+]
